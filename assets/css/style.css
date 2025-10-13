@@ -1,0 +1,1221 @@
+/* ===================================================================
+   ChequeGestor - Hoja de Estilos Definitiva v3.0
+   =================================================================== */
+
+/* --- 1. CONFIGURACIÓN GLOBAL DE TEMAS --- */
+:root {
+    --primary: #0d6efd;
+    --dark: #16191c;
+    --dark-surface: #1e2227;
+    --light-gray: #adb5bd;
+    --body-color: #dee2e6;
+    --chart-tick-color: #adb5bd; /* <-- AÑADE ESTA LÍNEA (color claro) */
+}
+
+[data-bs-theme="light"] {
+    --dark: #f8f9fa;
+    --dark-surface: #ffffff;
+    --light-gray: #6c757d;
+    --body-color: #212529;
+    --chart-tick-color: #6c757d; /* <-- AÑADE ESTA LÍNEA (color oscuro) */
+}
+
+body {
+    background-color: var(--dark);
+    color: var(--body-color);
+    overflow-x: hidden;
+}
+
+
+/* --- 2. LAYOUT BASE (SIN ANIMACIONES POR DEFECTO) --- */
+#wrapper {
+    position: relative;
+    /* El padding-left se define en los estados, no aquí */
+}
+
+#sidebar-wrapper {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    bottom: 1rem;
+    background-color: var(--dark-surface) !important;
+    border-radius: 1.5rem;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    /* El ancho se define en los estados, no aquí */
+}
+
+#page-content-wrapper {
+    width: 100%;
+}
+
+
+/* --- 3. ESTADOS DEL LAYOUT (EXPANDIDO Y COLAPSADO) --- */
+
+/* ESTADO EXPANDIDO (POR DEFECTO) */
+#wrapper {
+    padding-left: calc(280px + 2rem);
+}
+#sidebar-wrapper {
+    width: 280px;
+}
+
+/* ESTADO COLAPSADO (CUANDO TIENE LA CLASE .toggled) */
+#wrapper.toggled {
+    padding-left: calc(100px + 2rem);
+}
+#wrapper.toggled #sidebar-wrapper {
+    width: 100px;
+}
+#wrapper.toggled .sidebar-link-text,
+#wrapper.toggled .sidebar-heading-custom,
+#wrapper.toggled .sidebar-toggle-text {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+}
+#wrapper.toggled .app-logo .sidebar-link-text {
+    opacity: 0;
+    visibility: hidden;
+}
+#wrapper.toggled .app-logo i {
+    margin-right: 0;
+}
+#wrapper.toggled #sidebar-wrapper .list-group-item i {
+    min-width: 68px; /* 100px (ancho) - 2rem (padding) */
+    margin-right: 0;
+}
+
+
+/* --- 4. ACTIVADOR DE ANIMACIONES --- */
+/* Estas reglas solo se aplican DESPUÉS de que JS lo indique */
+body.transitions-active #wrapper {
+    transition: padding-left 0.3s ease-in-out;
+}
+body.transitions-active #sidebar-wrapper {
+    transition: width 0.3s ease-in-out;
+}
+body.transitions-active .sidebar-link-text,
+body.transitions-active .sidebar-toggle-text {
+    transition: opacity 0.2s ease-in-out 0.1s;
+}
+body.transitions-active #wrapper.toggled .sidebar-link-text,
+body.transitions-active #wrapper.toggled .sidebar-heading-custom,
+body.transitions-active #wrapper.toggled .sidebar-toggle-text {
+    transition: opacity 0.1s ease, visibility 0.1s ease, width 0.1s ease;
+}
+
+
+/* --- 5. COMPONENTES DEL SIDEBAR --- */
+.sidebar-header {
+    padding: 1.5rem;
+    text-align: center;
+}
+.app-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+}
+.app-logo i {
+    color: var(--primary);
+    margin-right: 0.75rem;
+}
+.sidebar-heading-custom {
+    padding: 1.5rem 1.5rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--light-gray);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+}
+#sidebar-wrapper .list-group {
+    padding: 0 1rem;
+}
+#sidebar-wrapper .list-group-item {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    background-color: transparent !important;
+    border: 0 !important;
+    color: var(--light-gray) !important;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.5rem;
+}
+#sidebar-wrapper .list-group-item i {
+    font-size: 1.3rem;
+    min-width: 40px;
+    margin-right: 1rem;
+}
+.sidebar-footer {
+    padding: 1rem;
+    margin-top: auto;
+}
+#sidebarToggle i {
+    transition: transform 0.3s ease-in-out;
+}
+#wrapper.toggled #sidebarToggle i {
+    transform: rotate(180deg);
+}
+/* === ESTILOS DE INTERACCIÓN PARA AMBOS TEMAS === */
+
+/* Hover (Tema Oscuro por defecto) */
+#sidebar-wrapper .list-group-item-action:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Activo (Tema Oscuro por defecto) */
+#sidebar-wrapper .list-group-item.active {
+    position: relative;
+    color: #fff !important;
+    background-color: rgba(13, 110, 253, 0.1) !important; /* Fondo azul sutil */
+}
+#sidebar-wrapper .list-group-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 4px;
+    background-color: var(--primary);
+    border-radius: 0 4px 4px 0;
+}
+
+/* --- 6. REGLAS GLOBALES PARA CONSISTENCIA VISUAL --- */
+.card {
+    background-color: var(--dark-surface) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--body-color) !important;
+    transition: all 0.2s ease-in-out;
+}
+.card-header, .card-title, .card-body h1, .card-body h2, .card-body h3, .card-body h4, .card-body h5 {
+    color: #fff !important;
+}
+.card-text, .text-muted, .card .text-muted {
+    color: var(--light-gray) !important;
+}
+.form-label {
+    color: var(--light-gray) !important;
+}
+.form-control, .form-select {
+    background-color: var(--dark) !important;
+    color: var(--body-color) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.2s ease-in-out;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+.dataTables_wrapper, table.dataTable, .page-link {
+    /* ... (Reglas de DataTables) ... */
+}
+
+/* --- 7. ESTILOS DE PÁGINAS ESPECÍFICAS --- */
+/* (Dashboard, Nueva Solicitud, Trazabilidad, Historial, Usuarios, Modales, etc.) */
+/* ... (Todas las secciones 6, 7, 9, 11, 12, 13, 14 que ya tenías van aquí) ... */
+
+/* --- 8. ESTILOS DE PÁGINAS PÚBLICAS (LOGIN/REGISTER) --- */
+.auth-split-layout { display: grid; grid-template-columns: 45% 55%; min-height: 100vh; width: 100%; }
+.auth-branding-side { background-color: var(--dark-surface); color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; text-align: center; }
+.auth-branding-side .app-logo-auth { font-size: 3rem; font-weight: 700; }
+.auth-branding-side p { font-size: 1.2rem; color: var(--light-gray); max-width: 400px; }
+.auth-form-side { background-color: var(--dark); display: flex; justify-content: center; align-items: center; padding: 2rem; }
+.auth-card { width: 100%; max-width: 400px; background-color: transparent; }
+
+/* --- 9. ESTILOS DE IMPRESIÓN --- */
+@media print {
+    body { background-color: #fff; }
+    .no-print, #sidebar-wrapper, .navbar { display: none !important; }
+    #wrapper { padding-left: 0 !important; }
+}
+
+/* --- 10. ADAPTACIÓN PARA EL TEMA CLARO --- */
+[data-bs-theme="light"] #sidebar-wrapper { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); border-right-color: #dee2e6; }
+[data-bs-theme="light"] .navbar { border-bottom: 1px solid #dee2e6 !important; }
+[data-bs-theme="light"] .card { border-color: #dee2e6 !important; }
+/* ... (Todas las demás reglas de [data-bs-theme="light"] que ya tenías van aquí) ... */
+[data-bs-theme="light"] h1, [data-bs-theme="light"] h2, [data-bs-theme="light"] h3 { color: var(--body-color) !important; }
+[data-bs-theme="light"] .app-logo i { color: var(--primary); }
+/* === CORRECCIÓN DEFINITIVA PARA TEMA CLARO === */
+
+/* Hover (Tema Claro) */
+[data-bs-theme="light"] #sidebar-wrapper .list-group-item-action:hover {
+    background-color: rgba(13, 110, 253, 0.1) !important; /* Fondo azul claro sutil */
+    color: var(--primary) !important; /* Texto en color primario */
+}
+
+/* Activo (Tema Claro) */
+[data-bs-theme="light"] #sidebar-wrapper .list-group-item.active {
+    background-color: rgba(13, 110, 253, 0.15) !important; /* Fondo azul un poco más intenso */
+    color: var(--primary) !important; /* Texto en color primario */
+}
+
+[data-bs-theme="light"] #sidebar-wrapper .list-group-item.active i {
+    color: var(--primary);
+}
+
+/* --- 17. CORRECCIÓN FINAL Y DEFINITIVA DEL BOTÓN DE TOGGLE --- */
+
+/* Cuando el wrapper está colapsado... */
+#wrapper.toggled .sidebar-footer #sidebarToggleCollapse {
+    display: none !important; /* Oculta el botón con texto */
+}
+
+#wrapper.toggled .sidebar-footer #sidebarToggleExpand {
+    display: flex !important; /* Muestra el botón de solo icono */
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: CORRECCIONES DE CONSISTENCIA VISUAL
+   =================================================================== */
+
+/* ===================================================================
+   SECCIÓN FINAL: REDISEÑO "PREMIUM" DEL MENÚ DESPLEGABLE DEL USUARIO
+   =================================================================== */
+
+/* --- 1. ESTILO BASE DEL DROPDOWN "GLASSMORPHISM" --- */
+.dropdown-menu {
+    background: rgba(44, 48, 52, 0.85); /* Fondo semitransparente oscuro */
+    backdrop-filter: blur(10px); /* Efecto de vidrio esmerilado */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 0.5rem; /* Padding general */
+    margin-top: 0.75rem !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* --- 2. ENCABEZADO PERSONALIZADO DEL DROPDOWN --- */
+.dropdown-header-custom {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.5rem;
+}
+
+/* --- 3. ITEMS DEL DROPDOWN Y EFECTOS --- */
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    color: var(--light-gray);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem; /* Bordes redondeados para cada item */
+    transition: all 0.2s ease-in-out;
+}
+.dropdown-item i {
+    opacity: 0.7;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: rgba(255, 255, 255, 0.05); /* Resaltado muy sutil */
+    color: #fff;
+}
+.dropdown-item:hover i, .dropdown-item:focus i {
+    opacity: 1;
+}
+
+.dropdown-divider {
+    border-top-color: rgba(255, 255, 255, 0.1);
+    margin: 0.5rem;
+}
+
+/* --- 4. ESTILO DEL INTERRUPTOR DE TEMA --- */
+.form-switch .form-check-input {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+.form-switch .form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+
+/* --- 5. ADAPTACIÓN COMPLETA PARA TEMA CLARO --- */
+[data-bs-theme="light"] .dropdown-menu {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border-color: #dee2e6;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+[data-bs-theme="light"] .dropdown-header-custom {
+    border-bottom-color: #dee2e6;
+}
+[data-bs-theme="light"] .dropdown-item {
+    color: #495057;
+}
+[data-bs-theme="light"] .dropdown-item:hover, 
+[data-bs-theme="light"] .dropdown-item:focus {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--primary);
+}
+[data-bs-theme="light"] .dropdown-item.text-danger:hover {
+    background-color: #dc3545;
+    color: #fff;
+}
+[data-bs-theme="light"] .dropdown-divider {
+    border-top-color: #dee2e6;
+}
+[data-bs-theme="light"] .form-switch .form-check-input {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+/* Asegura que el switch no tenga márgenes que afecten la alineación vertical */
+.dropdown-item .form-switch {
+    margin-bottom: 0;
+}
+
+
+/* ===================================================================
+   SECCIÓN FINAL: REDISEÑO DE LA PÁGINA DE TRAZABILIDAD
+   =================================================================== */
+
+/* --- 1. BOTONES DE FILTRO DE ESTADO --- */
+.status-filter-nav .nav-link {
+    color: var(--light-gray);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    border: 2px solid transparent;
+}
+.status-filter-nav .nav-link.active {
+    background-color: var(--dark-surface);
+    color: #fff;
+}
+.status-filter-nav .nav-link:hover {
+    color: #fff;
+}
+/* Colores de borde al hacer hover */
+.status-filter-nav .nav-link.filter-pending:hover, .status-filter-nav .nav-link.filter-pending.active { border-color: #ffc107; color: #ffc107 !important; background-color: rgba(255, 193, 7, 0.1);}
+.status-filter-nav .nav-link.filter-approved:hover, .status-filter-nav .nav-link.filter-approved.active { border-color: #198754; color: #198754 !important; background-color: rgba(25, 135, 84, 0.1);}
+.status-filter-nav .nav-link.filter-paid:hover, .status-filter-nav .nav-link.filter-paid.active { border-color: #0dcaf0; color: #0dcaf0 !important; background-color: rgba(13, 202, 240, 0.1);}
+.status-filter-nav .nav-link.filter-rejected:hover, .status-filter-nav .nav-link.filter-rejected.active { border-color: #dc3545; color: #dc3545 !important; background-color: rgba(220, 53, 69, 0.1);}
+
+
+/* --- 2. LÍNEA DE TIEMPO REDISEÑADA --- */
+.timeline { position: relative; padding-left: 40px; }
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 40px;
+    top: 15px;
+    bottom: 15px;
+    width: 3px;
+    background-color: var(--dark-surface);
+    border-radius: 3px;
+}
+[data-bs-theme="light"] .timeline::before { background-color: #e9ecef; }
+
+.timeline-item { position: relative; margin-bottom: 2.5rem; }
+.timeline-icon-wrapper { position: absolute; left: -20px; top: 0; z-index: 10; }
+.timeline-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 0 0 5px var(--dark); /* Espacio alrededor del icono */
+}
+[data-bs-theme="light"] .timeline-icon { box-shadow: 0 0 0 5px var(--dark); }
+
+.timeline-content {
+    padding-left: 40px;
+}
+.timeline-card {
+    background-color: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+}
+.timeline-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.3) !important;
+}
+[data-bs-theme="light"] .timeline-card { border-color: #e9ecef; }
+[data-bs-theme="light"] .timeline-card:hover { box-shadow: 0 1rem 2rem rgba(0,0,0,0.1) !important; }
+
+.timeline-card .card-footer {
+    background-color: rgba(0,0,0,0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+[data-bs-theme="light"] .timeline-card .card-footer {
+    background-color: rgba(0,0,0,0.03);
+    border-top-color: #e9ecef;
+}
+
+
+/* --- 3. CORRECCIÓN DE ICONOS EN LA PÁGINA "NUEVA SOLICITUD" --- */
+
+/* Forzar el color correcto de los iconos en la lista de características */
+[data-bs-theme="light"] .feature-list .text-success {
+    color: #198754 !important;
+}
+[data-bs-theme="light"] .feature-list .text-info {
+    color: #0dcaf0 !important;
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: MASTER FIX PARA CONSISTENCIA VISUAL DEL TEMA CLARO
+   =================================================================== */
+
+/* --- 1. CORRECCIÓN DE TEXTOS Y TÍTULOS INVISIBLES --- */
+/* Esta es la regla más importante. Anula cualquier clase ".text-white" en el modo claro. */
+[data-bs-theme="light"] .text-white {
+    color: var(--body-color) !important;
+}
+
+/* Forzar el color correcto en todos los encabezados */
+[data-bs-theme="light"] h1,
+[data-bs-theme="light"] h2,
+[data-bs-theme="light"] h3,
+[data-bs-theme="light"] h4,
+[data-bs-theme="light"] h5,
+[data-bs-theme="light"] h6 {
+    color: var(--body-color) !important;
+}
+
+/* Corregir el color de los Breadcrumbs */
+[data-bs-theme="light"] .breadcrumb-item a {
+    color: var(--light-gray);
+}
+[data-bs-theme="light"] .breadcrumb-item.active {
+    color: var(--body-color);
+}
+
+
+/* --- 2. CORRECCIÓN DE LA LÍNEA DE TIEMPO DE TRAZABILIDAD --- */
+/* Le damos un borde de color en lugar de un fondo sólido */
+[data-bs-theme="light"] .timeline-content .card-body {
+    border-left: 4px solid;
+}
+[data-bs-theme="light"] .timeline-content .border-color-warning { border-left-color: #ffc107; }
+[data-bs-theme="light"] .timeline-content .border-color-success { border-left-color: #198754; }
+[data-bs-theme="light"] .timeline-content .border-color-info { border-left-color: #0dcaf0; }
+[data-bs-theme="light"] .timeline-content .border-color-danger { border-left-color: #dc3545; }
+
+
+/* --- 3. CORRECCIÓN DE ICONOS EN LA PÁGINA "NUEVA SOLICITUD" --- */
+/* Forzar el color correcto de los iconos de la lista de características */
+[data-bs-theme="light"] .feature-list .text-success {
+    color: #198754 !important;
+}
+[data-bs-theme="light"] .feature-list .text-info {
+    color: #0dcaf0 !important;
+}
+
+/* --- 4. CORRECCIÓN DEL MENÚ DESPLEGABLE DEL USUARIO --- */
+/* Estilo base para el dropdown en TEMA OSCURO */
+.dropdown-menu { background-color: var(--dark-surface); border-color: rgba(255, 255, 255, 0.15); }
+.dropdown-item { color: var(--body-color); }
+.dropdown-item:hover, .dropdown-item:focus { background-color: var(--primary); color: #fff; }
+.dropdown-divider { border-top-color: rgba(255, 255, 255, 0.15); }
+
+/* Adaptación completa del dropdown para TEMA CLARO */
+[data-bs-theme="light"] .dropdown-menu { background-color: #fff; border-color: #dee2e6; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
+[data-bs-theme="light"] .dropdown-item { color: #212529; }
+[data-bs-theme="light"] .dropdown-item:hover, [data-bs-theme="light"] .dropdown-item:focus { background-color: var(--primary); color: #fff; }
+[data-bs-theme="light"] .dropdown-divider { border-top-color: #dee2e6; }
+[data-bs-theme="light"] .form-switch .form-check-input { background-color: #ccc; }
+[data-bs-theme="light"] .navbar .nav-link { color: rgba(0, 0, 0, 0.7) !important; }
+
+/* --- 14. ESTILOS PARA LA PÁGINA DE GESTIÓN DE USUARIOS (REDISEÑADA) --- */
+
+.user-list-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.user-list-item:last-child {
+    border-bottom: 0;
+}
+[data-bs-theme="light"] .user-list-item {
+    border-bottom-color: #dee2e6;
+}
+
+.user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.user-info .user-name {
+    font-weight: 600;
+    color: var(--body-color);
+}
+.user-info .user-email {
+    font-size: 0.9rem;
+    color: var(--light-gray);
+}
+[data-bs-theme="light"] .user-info .user-name {
+    color: var(--body-color) !important;
+}
+
+.user-manager {
+    min-width: 150px; /* Ancho fijo para alineación */
+}
+
+.user-actions {
+    text-align: right;
+}
+
+/* --- 6. ESTILOS DE PÁGINA "NUEVA SOLICITUD" (VERSIÓN PREMIUM) --- */
+
+/* Stepper de Progreso */
+.step-item { text-align: center; }
+.step-circle { width: 30px; height: 30px; border-radius: 50%; background-color: var(--dark-surface); color: var(--light-gray); display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto 0.5rem; border: 2px solid #495057; transition: all 0.3s ease; }
+.step-label { font-size: 0.8rem; color: var(--light-gray); }
+.step-connector { width: 100px; height: 2px; background-color: #495057; align-self: center; margin: 0 1rem -1rem; }
+.step-item.active .step-circle { background-color: var(--primary); border-color: var(--primary); color: #fff; }
+.step-item.active .step-label { color: #fff; font-weight: bold; }
+.step-item.done .step-circle { background-color: #198754; border-color: #198754; color: #fff; }
+
+/* Tarjetas de Selección de Soporte Rediseñadas */
+.support-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    background: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    padding: 3rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative; /* ¡Importante! Mantiene el contexto de posicionamiento */
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.support-card:hover { 
+    transform: translateY(-5px); 
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4); 
+    border-color: var(--primary);
+    /* Efecto de sombra interior para más profundidad */
+    box-shadow: inset 0 0 20px rgba(13, 110, 253, 0.2), 0 15px 30px rgba(0,0,0,0.4);
+}
+
+/* EFECTO DE SPOTLIGHT */
+.support-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, 0.05), transparent 30%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1; /* Nivel 1 (fondo) */
+}
+
+.support-card:hover::before {
+    opacity: 1;
+}
+
+/* Ahora, nos aseguramos de que TODO el contenido real esté ENCIMA */
+.support-card > * {
+    position: relative;
+    z-index: 2; /* Nivel 2 (contenido) */
+}
+
+.card-icon-wrapper {
+    width: 80px; height: 80px; /* Un poco más grande */
+    border-radius: 1.5rem;
+    background-color: rgba(13, 110, 253, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--primary);
+}
+.support-card h3 {
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.75rem;
+}
+
+/* Botones Mejorados */
+.btn-primary-gradient, .btn-secondary-gradient {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem; /* Más padding horizontal */
+    font-weight: 500;
+    font-size: 1.1rem;
+    border-radius: 0.75rem;
+    width: 100%;
+}
+.btn-primary-gradient { background: linear-gradient(45deg, #0d6efd, #044cb3); border: 0; }
+.btn-secondary-gradient { background: linear-gradient(45deg, #8247e5, #492881); border: 0; color: #fff; }
+
+/* Adaptación para Tema Claro */
+[data-bs-theme="light"] .support-card {
+    background: #ffffff;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+[data-bs-theme="light"] .support-card:hover { 
+    box-shadow: inset 0 0 20px rgba(13, 110, 253, 0.1), 0 15px 30px rgba(0,0,0,0.1);
+}
+[data-bs-theme="light"] .support-card::before {
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(0, 0, 0, 0.03), transparent 30%);
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: DISEÑO DEFINITIVO DEL DASHBOARD
+   =================================================================== */
+
+/* --- 1. Tarjetas de Estadísticas (KPI) de Alto Impacto --- */
+.stat-card-final {
+    background: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden; /* Para el borde brillante */
+}
+.stat-card-final::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+.stat-card-final:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.3) !important;
+}
+.stat-card-final .stat-icon {
+    font-size: 2.5rem;
+    padding: 1rem;
+    border-radius: 50%;
+}
+.stat-card-final .stat-info h2 {
+    margin: 0;
+}
+
+/* Colores de Estado Consistentes */
+.card-pending::before { background-color: #ffc107; }
+.card-pending .stat-icon { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
+
+.card-approved::before { background-color: #198754; }
+.card-approved .stat-icon { background-color: rgba(25, 135, 84, 0.1); color: #198754; }
+
+.card-paid::before { background-color: #0dcaf0; }
+.card-paid .stat-icon { background-color: rgba(13, 202, 240, 0.1); color: #0dcaf0; }
+
+.card-rejected::before { background-color: #dc3545; }
+.card-rejected .stat-icon { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
+
+[data-bs-theme="light"] .stat-card-final {
+    border-color: #e9ecef !important;
+}
+
+/* --- 2. Feed de Actividad en formato Timeline (VERSIÓN CORREGIDA) --- */
+
+.activity-timeline {
+    position: relative;
+    /* Dejamos espacio a la izquierda para la línea y los iconos */
+    padding-left: 25px; 
+}
+
+/* La línea vertical */
+.activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 25px; /* Alineada con el padding */
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+[data-bs-theme="light"] .activity-timeline::before {
+    background-color: #e9ecef;
+}
+
+.timeline-item-sm {
+    position: relative;
+    /* El contenido empieza después de la línea y el icono */
+    padding-left: 35px; 
+    margin-bottom: 1.5rem;
+}
+.timeline-item-sm:last-child {
+    margin-bottom: 0;
+}
+
+/* El icono */
+.timeline-icon-sm {
+    position: absolute;
+    /* LA CORRECCIÓN CLAVE: Posicionamos el icono perfectamente centrado en la línea */
+    left: 0; 
+    transform: translateX(-50%); /* Centra el icono horizontalmente sobre su nueva posición 'left' */
+    top: 0;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    /* El 'box-shadow' crea el espacio "vacío" alrededor del icono */
+    box-shadow: 0 0 0 5px var(--dark-surface); 
+}
+[data-bs-theme="light"] .timeline-icon-sm {
+    box-shadow: 0 0 0 5px var(--dark-surface);
+}
+
+.timeline-content-sm p {
+    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
+}
+.timeline-content-sm small {
+    font-size: 0.8rem;
+}
+
+/* --- 3. Estilos para el Tooltip Personalizado del Gráfico --- */
+#chartjs-tooltip {
+        opacity: 0;
+    position: absolute;
+    background: rgba(33, 37, 41, 0.9);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    pointer-events: none;
+    transition: all 0.1s ease;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#chartjs-tooltip table {
+    margin: 0;
+}
+#chartjs-tooltip th {
+    font-weight: bold;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+#chartjs-tooltip td {
+    padding-top: 0.5rem;
+}
+.tooltip-color-box {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 0.5rem;
+    border-radius: 2px;
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: REDISEÑO DE LA PÁGINA DE HISTORIAL (SOLICITUDES)
+   =================================================================== */
+
+/* --- 1. BARRA DE FILTROS MEJORADA --- */
+.filter-bar {
+    background-color: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+}
+[data-bs-theme="light"] .filter-bar {
+    border-color: #dee2e6;
+}
+
+/* --- 2. TARJETAS DE SOLICITUD REDISEÑADAS --- */
+.solicitud-card-v2 {
+    background: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left-width: 4px;
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+}
+.solicitud-card-v2:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.3) !important;
+    border-color: var(--primary) !important;
+}
+
+[data-bs-theme="light"] .solicitud-card-v2 {
+    border-color: #e9ecef !important;
+}
+[data-bs-theme="light"] .solicitud-card-v2:hover {
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.1) !important;
+}
+
+/* Colores de estado consistentes */
+.solicitud-card-v2.border-warning { border-left-color: #ffc107; }
+.solicitud-card-v2.border-success { border-left-color: #198754; }
+.solicitud-card-v2.border-info { border-left-color: #0dcaf0; }
+.solicitud-card-v2.border-danger { border-left-color: #dc3545; }
+
+/* --- 12. ESTILOS PARA EL MODAL DE DETALLES (REDISEÑO FINAL) --- */
+
+.detail-section {
+    background-color: rgba(255, 255, 255, 0.05); /* Fondo sutil para la mini-tarjeta */
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+[data-bs-theme="light"] .detail-section {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.detail-title {
+    font-weight: 600;
+    color: var(--primary); /* Título en color primario */
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+/* LA CORRECCIÓN CLAVE PARA LA ALINEACIÓN */
+.detail-grid {
+    display: grid;
+    grid-template-columns: auto 1fr; /* Columna de etiqueta auto, columna de valor ocupa el resto */
+    gap: 0.75rem 1rem; /* Espaciado vertical y horizontal */
+    align-items: center;
+}
+.detail-grid span {
+    color: var(--light-gray);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.detail-grid strong {
+    color: var(--body-color);
+    font-weight: 600;
+    text-align: right;
+}
+[data-bs-theme="light"] .detail-grid strong {
+    color: var(--body-color) !important;
+}
+
+.detail-text {
+    line-height: 1.6;
+}
+.detail-text strong {
+    color: var(--light-gray);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* --- 18. CORRECCIÓN FINAL PARA EL GRÁFICO EN TEMA CLARO --- */
+
+
+/* Estilo para el tooltip personalizado (añadido para completitud) */
+.chartjs-tooltip {
+    opacity: 0;
+    position: absolute;
+    background: rgba(33, 37, 41, 0.9);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    pointer-events: none;
+    transition: all 0.1s ease;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 1001; /* Asegurar que esté por encima del canvas */
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: CORRECCIÓN DEFINITIVA PARA LOGIN/REGISTER EN TEMA CLARO
+   =================================================================== */
+
+/* --- 1. Panel Izquierdo (Branding) en Tema Claro --- */
+[data-bs-theme="light"] .auth-branding-side {
+    background-color: #f8f9fa; /* Fondo gris muy claro, casi blanco */
+    color: var(--body-color);  /* Usa el color de texto principal del tema claro (oscuro) */
+}
+
+/* Corregir color del logo y párrafo en el panel de branding */
+[data-bs-theme="light"] .auth-branding-side .app-logo-auth,
+[data-bs-theme="light"] .auth-branding-side h1 {
+    color: #212529 !important; /* Forzar texto negro para el título principal */
+}
+[data-bs-theme="light"] .auth-branding-side p {
+    color: #6c757d !important; /* Forzar texto gris oscuro para el subtítulo */
+}
+
+/* --- 2. Panel Derecho (Formulario) en Tema Claro --- */
+[data-bs-theme="light"] .auth-form-side {
+    background-color: #ffffff; /* Fondo blanco puro */
+}
+
+/* Corregir textos dentro del contenedor del formulario */
+[data-bs-theme="light"] .auth-card h2 {
+    color: var(--body-color) !important;
+}
+[data-bs-theme="light"] .auth-card .text-muted {
+    color: var(--light-gray) !important;
+}
+
+/* === LA CORRECCIÓN CLAVE: HACER VISIBLES LOS CAMPOS DEL FORMULARIO === */
+[data-bs-theme="light"] .auth-form-side .form-control,
+[data-bs-theme="light"] .auth-form-side .form-select {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border: 1px solid #ced4da !important; /* Borde gris estándar de Bootstrap */
+}
+
+[data-bs-theme="light"] .auth-form-side .form-label {
+    color: #495057 !important; /* Texto de etiqueta más oscuro y legible */
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: REDISEÑO DE LA PÁGINA DE APROBACIONES
+   =================================================================== */
+
+.approval-card {
+    background-color: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid var(--primary); /* Borde azul para indicar acción */
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+.approval-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.3) !important;
+}
+[data-bs-theme="light"] .approval-card {
+    border-color: #e9ecef !important;
+}
+[data-bs-theme="light"] .approval-card:hover {
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.1) !important;
+}
+
+.approval-card .user-avatar {
+    width: 45px;
+    height: 45px;
+    font-size: 1.1rem;
+}
+
+.approval-card .card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.approval-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: BARRA DE FILTROS PARA PÁGINA DE APROBACIONES
+   =================================================================== */
+
+.filter-bar {
+    background-color: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+}
+
+[data-bs-theme="light"] .filter-bar {
+    border-color: #dee2e6;
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: REDISEÑO "PREMIUM" DEL FORMULARIO DE CREACIÓN
+   =================================================================== */
+
+/* --- 1. NUEVO ESTILO DE TARJETAS "GLASSMORPHISM" --- */
+.form-card {
+    background: rgba(44, 48, 52, 0.5); /* Fondo semitransparente */
+    backdrop-filter: blur(10px); /* El efecto de "vidrio esmerilado" */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 2rem;
+}
+[data-bs-theme="light"] .form-card {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.form-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--body-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+[data-bs-theme="light"] .form-card-header {
+    border-bottom-color: #dee2e6;
+}
+[data-bs-theme="light"] .form-card-header,
+[data-bs-theme="light"] .form-card h5 {
+    color: var(--body-color) !important;
+}
+
+
+/* --- 2. BARRA DE ACCIONES FLOTANTE --- */
+.form-action-bar {
+    position: sticky;
+    bottom: 1rem;
+    width: fit-content; /* Se ajusta al contenido */
+    margin-left: auto; /* La alinea a la derecha */
+    margin-right: 1rem;
+    background: rgba(30, 34, 39, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 1rem;
+    border-radius: 1rem; /* Más redondeada */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 100;
+}
+[data-bs-theme="light"] .form-action-bar {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: #dee2e6;
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: PULIDO FINAL DEL MENÚ DESPLEGABLE DEL USUARIO
+   =================================================================== */
+
+/* --- 1. CORRECCIÓN DEL BOTÓN "CERRAR SESIÓN" --- */
+/* Elimina cualquier fondo en el estado normal */
+.dropdown-item.text-danger {
+    background-color: transparent !important;
+}
+
+/* Aplica un fondo rojo y texto blanco EN AMBOS TEMAS al pasar el ratón */
+.dropdown-item.text-danger:hover,
+.dropdown-item.text-danger:focus {
+    background-color: #dc3545 !important; /* Color de peligro de Bootstrap */
+    color: #fff !important;
+}
+
+/* --- 2. MEJORA DE USABILIDAD DEL INTERRUPTOR DE TEMA --- */
+/* Convierte toda la fila en un área clickeable */
+.dropdown-item-interactive {
+    cursor: pointer;
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: REDISEÑO "PREMIUM" DE LOS BADGES DE ROL
+   =================================================================== */
+
+/* --- 1. ESTILO BASE PARA TODOS LOS BADGES DE ROL --- */
+.user-role .badge {
+    padding: 0.4em 0.9em; /* Más padding para que "respire" */
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
+}
+
+/* --- 2. PALETA DE COLORES "SOFT" PARA EL TEMA OSCURO --- */
+.text-bg-primary { background-color: rgba(13, 110, 253, 0.15) !important; color: #60a5fa !important; border-color: rgba(13, 110, 253, 0.3) !important; }
+.text-bg-success { background-color: rgba(25, 135, 84, 0.15) !important; color: #34d399 !important; border-color: rgba(25, 135, 84, 0.3) !important; }
+.text-bg-info { background-color: rgba(13, 202, 240, 0.15) !important; color: #22d3ee !important; border-color: rgba(13, 202, 240, 0.3) !important; }
+.text-bg-warning { background-color: rgba(255, 193, 7, 0.15) !important; color: #facc15 !important; border-color: rgba(255, 193, 7, 0.3) !important; }
+.text-bg-danger { background-color: rgba(220, 53, 69, 0.15) !important; color: #f87171 !important; border-color: rgba(220, 53, 69, 0.3) !important; }
+.text-bg-secondary { background-color: rgba(108, 117, 125, 0.15) !important; color: #9ca3af !important; border-color: rgba(108, 117, 125, 0.3) !important; }
+.text-bg-dark { background-color: rgba(255, 255, 255, 0.1) !important; color: #e5e7eb !important; border-color: rgba(255, 255, 255, 0.2) !important; }
+
+/* --- 3. ADAPTACIÓN DE LA PALETA PARA EL TEMA CLARO --- */
+[data-bs-theme="light"] .text-bg-primary { background-color: #e0e7ff !important; color: #4f46e5 !important; border-color: #c7d2fe !important; }
+[data-bs-theme="light"] .text-bg-success { background-color: #d1fae5 !important; color: #059669 !important; border-color: #a7f3d0 !important; }
+[data-bs-theme="light"] .text-bg-info { background-color: #cffafe !important; color: #0891b2 !important; border-color: #a5f3fc !important; }
+[data-bs-theme="light"] .text-bg-warning { background-color: #fef3c7 !important; color: #d97706 !important; border-color: #fde68a !important; }
+[data-bs-theme="light"] .text-bg-danger { background-color: #fee2e2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+[data-bs-theme="light"] .text-bg-secondary { background-color: #f3f4f6 !important; color: #6b7280 !important; border-color: #e5e7eb !important; }
+[data-bs-theme="light"] .text-bg-dark { background-color: #e5e7eb !important; color: #374151 !important; border-color: #d1d5db !important; }
+
+/* --- CORRECCIÓN PARA EL MODAL DE DETALLES --- */
+.detail-grid .grid-col-span-2 {
+    grid-column: span 2;
+    margin-top: 0.5rem;
+}
+
+/* ===================================================================
+   SECCIÓN FINAL: ESTILOS PARA LA PÁGINA DE HISTORIAL (RESTAURADOS)
+   =================================================================== */
+
+/* --- ESTILOS PARA LAS TARJETAS DE SOLICITUDES --- */
+.solicitud-card-v2 {
+    background: var(--dark-surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left-width: 4px;
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+}
+.solicitud-card-v2:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.3) !important;
+    border-color: var(--primary) !important;
+}
+[data-bs-theme="light"] .solicitud-card-v2 {
+    border-color: #e9ecef !important;
+}
+.solicitud-card-v2.border-warning { border-left-color: #ffc107; }
+.solicitud-card-v2.border-success { border-left-color: #198754; }
+.solicitud-card-v2.border-info { border-left-color: #0dcaf0; }
+.solicitud-card-v2.border-danger { border-left-color: #dc3545; }
+
+/* --- ESTILOS PARA LA PAGINACIÓN DE BOOTSTRAP --- */
+.pagination .page-link {
+    background-color: var(--dark-surface);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--light-gray);
+}
+.pagination .page-item.active .page-link {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+.pagination .page-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* Adaptación para tema claro */
+[data-bs-theme="light"] .pagination .page-link {
+    background-color: #ffffff;
+    border-color: #dee2e6;
+    color: #495057;
+}
+[data-bs-theme="light"] .pagination .page-item.active .page-link {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+[data-bs-theme="light"] .pagination .page-link:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #212529;
+}
