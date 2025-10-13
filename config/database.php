@@ -1,7 +1,7 @@
 <?php
 // Constantes de conexión a la Base de Datos
-define('DB_HOST', 'localhost:3307');
-define('DB_USER', 'root');
+define('DB_HOST', '192.168.1.13:3307');
+define('DB_USER', 'admin');
 define('DB_PASS', '');
 define('DB_NAME', 'solicitud_cheques'); 
 
