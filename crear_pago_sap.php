@@ -3,6 +3,39 @@
 require_once 'includes/functions.php';
 proteger_pagina();
 
+// ===============================================================================
+// INICIO: LÓGICA DE GESTIÓN DE EMPRESA SAP
+// ===============================================================================
+
+// 1. Si se está seleccionando una nueva empresa desde la URL
+if (isset($_GET['empresa'])) {
+    $empresas_validas = ['TEST_UNHESA_ZZZ', 'TEST_PROQUIMA_ZZZ']; // ['TEST_UNHESA_ZZZ', 'TEST_PROQUIMA_ZZZ'];
+    if (in_array($_GET['empresa'], $empresas_validas)) {
+        // Guardar la empresa en la sesión
+        $_SESSION['company_db'] = $_GET['empresa'];
+        
+        // Limpiar caché de cuentas para forzar la recarga desde la nueva empresa
+        unset($_SESSION['sap_bank_accounts']);
+        unset($_SESSION['sap_bank_accounts_timestamp']);
+        unset($_SESSION['sap_predefined_accounts']);
+        unset($_SESSION['sap_predefined_accounts_timestamp']);
+
+        // Redirigir para limpiar la URL de parámetros GET
+        header('Location: crear_pago_sap.php');
+        exit();
+    }
+}
+
+// 2. Si no hay ninguna empresa seleccionada en la sesión, redirigir
+if (empty($_SESSION['company_db'])) {
+    header('Location: seleccionar_empresa.php');
+    exit();
+}
+// ===============================================================================
+// FIN: LÓGICA DE GESTIÓN DE EMPRESA SAP
+// ===============================================================================
+
+
 // Solo usuarios de finanzas o admins pueden acceder
 if (!in_array($_SESSION['rol'], ['finanzas', 'admin'])) {
     die("Acceso denegado. No tienes permiso para acceder a esta página.");
@@ -77,15 +110,20 @@ require_once 'templates/layouts/header.php';
 
 
 <!-- INICIO DEL FORMULARIO PARA PAGO SAP -->
-<form id="form-pago-sap" method="POST" class="needs-validation" novalidate> <!-- Se elimina 'action' para manejarlo con JS -->
+<form id="form-pago-sap" method="POST" class="needs-validation" novalidate>
     
     <!-- Contenedor para las notificaciones -->
     <div id="notification-container"></div>
     
     <!-- Encabezado de la página -->
     <div class="mb-5">
-        <?php generar_breadcrumbs(); // Asumiendo que esta función existe y está configurada ?>
-        <h1 class="fs-2 text-white mt-2">Crear Pago Efectuado (SAP)</h1>
+        <?php generar_breadcrumbs(); ?>
+        <div class="d-flex justify-content-between align-items-center">
+             <h1 class="fs-2 text-white mt-2">Crear Pago Efectuado (SAP)</h1>
+             <div class="fs-5 text-info">
+                Empresa Activa: <strong class="text-white"><?php echo htmlspecialchars($_SESSION['company_db']); ?></strong>
+             </div>
+        </div>
         <p class="text-muted">Completa todos los campos para registrar el pago en el sistema contable.</p>
     </div>
 
@@ -103,6 +141,10 @@ require_once 'templates/layouts/header.php';
                     <div class="col-md-6">
                         <label for="CardName" class="form-label">Nombre del Beneficiario <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="CardName" name="CardName" placeholder="Nombre completo del beneficiario" required>
+                    </div>
+                    <div class="col-12">
+                        <label for="CardCode" class="form-label">Código del Beneficiario (Opcional)</label>
+                        <input type="text" class="form-control" id="CardCode" name="CardCode" placeholder="Código de proveedor en SAP (si existe)">
                     </div>
                     <div class="col-12">
                         <label for="Remarks" class="form-label">Concepto del Pago (Observaciones) <span class="text-danger">*</span></label>
@@ -139,35 +181,36 @@ require_once 'templates/layouts/header.php';
                 <div class="form-card-header">
                      <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" role="switch" id="toggle-cheque">
-                        <label class="form-check-label" for="toggle-cheque"><i class="bi bi-bank me-2"></i>Registrar Pago con Cheque</label>
+                        <label class="form-check-label" for="toggle-cheque"><i class="bi bi-bank me-2"></i>Registrar Pago Bancario</label>
                     </div>
                 </div>
                 <div id="cheque-details-container" style="display: none;">
                     <div class="row g-3 p-3">
                         <div class="col-12">
-                            <label for="CheckNumber" class="form-label">Número de Cheque <span class="text-danger cheque-required-indicator" style="display: none;">*</span></label>
-                            <input type="number" class="form-control" id="CheckNumber" name="PaymentChecks[CheckNumber]">
-                        </div>
-                        <div class="col-12">
-                            <label for="BankCode" class="form-label">Banco <span class="text-danger cheque-required-indicator" style="display: none;">*</span></label>
-                            <select class="form-select" id="BankCode" name="PaymentChecks[BankCode]">
-                                <option value="">Seleccionar...</option>
-                                <option value="BI">Banco Industrial</option>
-                                <option value="BAM">BAM</option>
-                                <option value="G&T">G&T Continental</option>
-                                <option value="BAC">BAC Credomatic</option>
+                            <label for="CheckAccount" class="form-label">Cuenta Bancaria (SAP) <span class="text-danger cheque-required-indicator" style="display: none;">*</span></label>
+                            <select class="form-select" id="CheckAccount" name="PaymentChecks[CheckAccount]">
+                                <option value="">Seleccionar cuenta bancaria...</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label for="AccounttNum" class="form-label">Número de Cuenta <span class="text-danger cheque-required-indicator" style="display: none;">*</span></label>
-                            <input type="text" class="form-control" id="AccounttNum" name="PaymentChecks[AccounttNum]">
+                            <label for="BankNameDisplay" class="form-label">Banco</label>
+                            <input type="text" class="form-control" id="BankNameDisplay" readonly>
+                            <input type="hidden" id="BankCode" name="PaymentChecks[BankCode]">
                         </div>
                         <div class="col-12">
-                            <label for="CheckAccount" class="form-label">Cuenta de Cheque (SAP) <span class="text-danger cheque-required-indicator" style="display: none;">*</span></label>
-                            <input type="text" class="form-control" id="CheckAccount" name="PaymentChecks[CheckAccount]" placeholder="Ej: _SYS00000000007">
+                            <label for="AccounttNum" class="form-label">Número de Cuenta</label>
+                            <input type="text" class="form-control" id="AccounttNum" name="PaymentChecks[AccounttNum]" readonly>
                         </div>
                         <div class="col-12">
-                            <label for="CheckSum" class="form-label">Monto del Cheque</label>
+                            <label for="CheckNumber" class="form-label">Número de Referencia (Opcional)</label>
+                            <input type="number" class="form-control" id="CheckNumber" name="PaymentChecks[CheckNumber]" placeholder="Para referencia interna">
+                             <div class="form-text text-info-emphasis mt-2">
+                                <i class="bi bi-info-circle-fill me-1"></i>
+                                Nota: Este pago se registrará en SAP con la referencia <strong>0</strong>.
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="CheckSum" class="form-label">Monto</label>
                             <input type="number" class="form-control" id="CheckSum" name="PaymentChecks[CheckSum]" step="0.01" readonly>
                             <small class="text-muted">Este valor se calcula automáticamente.</small>
                         </div>
@@ -179,11 +222,14 @@ require_once 'templates/layouts/header.php';
     
     <!-- Barra de acciones flotante -->
     <div class="form-action-bar">
-        <button class="btn btn-secondary" type="reset">Limpiar</button>
-        <button class="btn btn-primary btn-lg" type="submit" id="submit-btn">
-            <i class="bi bi-send-fill me-2"></i>
-            <span id="submit-btn-text">Enviar a SAP</span>
-        </button>
+        <a href="seleccionar_empresa.php" class="btn btn-outline-secondary">Cambiar Empresa</a>
+        <div>
+            <button class="btn btn-secondary" type="reset">Limpiar</button>
+            <button class="btn btn-primary btn-lg" type="submit" id="submit-btn">
+                <i class="bi bi-send-fill me-2"></i>
+                <span id="submit-btn-text">Enviar a SAP</span>
+            </button>
+        </div>
     </div>
 </form>
 
@@ -212,7 +258,7 @@ require_once 'templates/layouts/header.php';
 <!-- JAVASCRIPT ESPECÍFICO PARA ESTA PÁGINA -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Selección de Elementos del DOM ---
+    // El resto del JavaScript no necesita cambios y permanece igual...
     const form = document.getElementById('form-pago-sap');
     const submitBtn = document.getElementById('submit-btn');
     const submitBtnText = document.getElementById('submit-btn-text');
@@ -220,13 +266,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const template = document.getElementById('cuenta-template');
     const btnAgregar = document.getElementById('btn-agregar-cuenta');
     const totalPagarEl = document.getElementById('total-pagar');
-    const checkSumInput = document.getElementById('CheckSum');
     const toggleCheque = document.getElementById('toggle-cheque');
     const chequeContainer = document.getElementById('cheque-details-container');
     
+    const checkSumInput = document.getElementById('CheckSum');
+    const checkAccountSelect = document.getElementById('CheckAccount');
+    const bankNameDisplay = document.getElementById('BankNameDisplay');
+    const bankCodeInput = document.getElementById('BankCode');
+    const accountNumInput = document.getElementById('AccounttNum');
+    
     let sapAccountsList = [];
+    let sapBankAccountsList = [];
 
-    // --- SISTEMA DE NOTIFICACIONES ---
     function showNotification(message, type = 'info') {
         const container = document.getElementById('notification-container');
         const notif = document.createElement('div');
@@ -243,7 +294,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // --- LÓGICA DE CARGA DE CUENTAS ---
     async function cargarCuentasSAP() {
         try {
             const response = await fetch('ajax/get_predefined_accounts.php');
@@ -263,7 +313,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- FUNCIONES AUXILIARES DEL FORMULARIO ---
+    async function cargarCuentasBancarias() {
+        try {
+            const response = await fetch('ajax/get_bank_accounts.php');
+            if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+            const result = await response.json();
+            if (result.status === 'success') {
+                sapBankAccountsList = result.data;
+                checkAccountSelect.innerHTML = '<option value="">Seleccionar cuenta bancaria...</option>'; // Limpiar antes de llenar
+                sapBankAccountsList.forEach(account => {
+                    const optionText = account.AccountName || `Cuenta sin nombre (${account.GLAccount})`;
+                    const option = new Option(optionText, account.GLAccount);
+                    option.dataset.bankCode = account.BankCode || '';
+                    option.dataset.accountNum = account.AccNo || '';
+                    
+                    if (account.AccountName && typeof account.AccountName === 'string') {
+                        option.dataset.bankName = account.AccountName.split('#')[0].trim();
+                    } else {
+                        option.dataset.bankName = 'N/A';
+                    }
+                    
+                    checkAccountSelect.appendChild(option);
+                });
+            } else {
+                showNotification(result.message, 'error');
+            }
+        } catch (error) {
+            console.error('Fallo al cargar cuentas bancarias de SAP:', error);
+            showNotification('Error de red al cargar las cuentas bancarias.', 'error');
+        }
+    }
+
     function agregarFila() {
         const clone = template.content.cloneNode(true);
         const select = clone.querySelector('.account-code-select');
@@ -288,9 +369,6 @@ document.addEventListener('DOMContentLoaded', function() {
         checkSumInput.value = total.toFixed(2);
     }
 
-    // --- MANEJO DE EVENTOS ---
-    
-    // Envío del formulario con AJAX
     form.addEventListener('submit', async function(event) {
         event.preventDefault();
         if (!form.checkValidity()) {
@@ -305,9 +383,11 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const formData = new FormData(form);
             const response = await fetch('scripts/handle_pago_sap.php', { method: 'POST', body: formData });
+            
             const result = await response.json();
-
-            if (!response.ok) throw new Error(result.message || 'Error desconocido del servidor.');
+            if (!response.ok) {
+                 throw new Error(result.message || `Error del servidor: ${response.status}`);
+            }
             
             showNotification(result.message, 'success');
             form.reset();
@@ -315,8 +395,9 @@ document.addEventListener('DOMContentLoaded', function() {
             agregarFila();
             calcularTotal();
             form.classList.remove('was-validated');
-            // Opcional: Si el toggle del cheque estaba activo, ocultarlo de nuevo
+
             if (toggleCheque.checked) {
+                toggleCheque.checked = false;
                 toggleCheque.dispatchEvent(new Event('change'));
             }
 
@@ -329,10 +410,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Añadir nueva fila de cuenta
     btnAgregar.addEventListener('click', agregarFila);
     
-    // Delegación de eventos para filas dinámicas
     container.addEventListener('click', function(e) {
         if (e.target && e.target.closest('.btn-remover-cuenta')) {
             e.target.closest('.cuenta-row').remove();
@@ -357,21 +436,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Toggle para la sección de cheque
+    checkAccountSelect.addEventListener('change', function(e) {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        if (e.target.value) {
+            bankNameDisplay.value = selectedOption.dataset.bankName;
+            bankCodeInput.value = selectedOption.dataset.bankCode;
+            accountNumInput.value = selectedOption.dataset.accountNum;
+        } else {
+            bankNameDisplay.value = '';
+            bankCodeInput.value = '';
+            accountNumInput.value = '';
+        }
+    });
+
     toggleCheque.addEventListener('change', function() {
         const isChecked = this.checked;
-        const chequeInputs = chequeContainer.querySelectorAll('input, select');
-        const chequeRequiredIndicators = chequeContainer.querySelectorAll('.cheque-required-indicator');
-
         chequeContainer.style.display = isChecked ? 'block' : 'none';
+        
+        const chequeRequiredIndicators = chequeContainer.querySelectorAll('.cheque-required-indicator');
         chequeRequiredIndicators.forEach(span => span.style.display = isChecked ? 'inline' : 'none');
-        chequeInputs.forEach(input => {
-            if (!input.readOnly) input.required = isChecked;
-        });
+
+        const checkAccountField = document.getElementById('CheckAccount');
+        checkAccountField.required = isChecked;
     });
 
     // --- INICIALIZACIÓN ---
     cargarCuentasSAP();
+    cargarCuentasBancarias();
 });
 </script>
 
