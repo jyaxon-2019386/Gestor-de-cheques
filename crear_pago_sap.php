@@ -9,7 +9,7 @@ proteger_pagina();
 
 // 1. Si se está seleccionando una nueva empresa desde la URL
 if (isset($_GET['empresa'])) {
-    $empresas_validas = ['TEST_UNHESA_ZZZ', 'TEST_PROQUIMA_ZZZ']; // ['TEST_UNHESA_ZZZ', 'TEST_PROQUIMA_ZZZ'];
+    $empresas_validas = ['TEST_UNHESA_ZZZ', 'TEST_PROQUIMA_ZZZ']; // ['UNHESA', 'SBOPROQUIMA'];
     if (in_array($_GET['empresa'], $empresas_validas)) {
         // Guardar la empresa en la sesión
         $_SESSION['company_db'] = $_GET['empresa'];
@@ -138,21 +138,30 @@ require_once 'templates/layouts/header.php';
                         <label for="DocDate" class="form-label">Fecha del Documento <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="DocDate" name="DocDate" value="<?php echo date('Y-m-d'); ?>" required>
                     </div>
+
+                    <div class="col-md-6">
+                        <label for="DocCurrency" class="form-label">Moneda <span class="text-danger">*</span></label>
+                        <select class="form-select" id="DocCurrency" name="DocCurrency" required>
+                            <option value="QTZ" selected>Quetzales (QTZ)</option>
+                            <option value="USD">Dólares (USD)</option>
+                        </select>
+                    </div>
+
                     <div class="col-md-6">
                         <label for="CardName" class="form-label">Nombre del Beneficiario <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="CardName" name="CardName" placeholder="Nombre completo del beneficiario" required>
                     </div>
-                    <div class="col-12">
+                    <!-- <div class="col-12">
                         <label for="CardCode" class="form-label">Código del Beneficiario (Opcional)</label>
                         <input type="text" class="form-control" id="CardCode" name="CardCode" placeholder="Código de proveedor en SAP (si existe)">
-                    </div>
+                    </div> -->
                     <div class="col-12">
                         <label for="Remarks" class="form-label">Concepto del Pago (Observaciones) <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="Remarks" name="Remarks" rows="2" placeholder="Ej: Pago de factura #123 por servicios de consultoría" required></textarea>
                     </div>
                     <div class="col-12">
-                        <label for="JournalRemarks" class="form-label">Descripción para Asiento Contable <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="JournalRemarks" name="JournalRemarks" rows="2" placeholder="Descripción que aparecerá en la partida contable" required></textarea>
+                        <label for="JournalRemarks" class="form-label">Confirmar Nombre Beneficiario <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="JournalRemarks" name="JournalRemarks" rows="2" placeholder="Descripción que aparecerá en la partida contable" required readonly></textarea>
                     </div>
                 </div>
             </div>
@@ -179,12 +188,9 @@ require_once 'templates/layouts/header.php';
             <!-- Tarjeta para Detalles del Cheque -->
             <div class="form-card">
                 <div class="form-card-header">
-                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="toggle-cheque">
-                        <label class="form-check-label" for="toggle-cheque"><i class="bi bi-bank me-2"></i>Registrar Pago Bancario</label>
-                    </div>
+                    <i class="bi bi-bank me-2"></i>Registrar Pago Bancario
                 </div>
-                <div id="cheque-details-container" style="display: none;">
+                <div id="cheque-details-container">
                     <div class="row g-3 p-3">
                         <div class="col-12">
                             <label for="CheckAccount" class="form-label">Cuenta Bancaria (SAP) <span class="text-danger cheque-required-indicator" style="display: none;">*</span></label>
@@ -202,11 +208,11 @@ require_once 'templates/layouts/header.php';
                             <input type="text" class="form-control" id="AccounttNum" name="PaymentChecks[AccounttNum]" readonly>
                         </div>
                         <div class="col-12">
-                            <label for="CheckNumber" class="form-label">Número de Referencia (Opcional)</label>
-                            <input type="number" class="form-control" id="CheckNumber" name="PaymentChecks[CheckNumber]" placeholder="Para referencia interna">
+                            <label for="CheckNumber" class="form-label">Número de Cheque</label>
+                            <input disabled type="number" class="form-control" id="CheckNumber" name="PaymentChecks[CheckNumber]" placeholder="Para referencia interna: 0">
                              <div class="form-text text-info-emphasis mt-2">
                                 <i class="bi bi-info-circle-fill me-1"></i>
-                                Nota: Este pago se registrará en SAP con la referencia <strong>0</strong>.
+                                Nota: Este pago se registrará en SAP con la referencia de <strong>0</strong>.
                             </div>
                         </div>
                         <div class="col-12">
@@ -226,8 +232,8 @@ require_once 'templates/layouts/header.php';
         <div>
             <button class="btn btn-secondary" type="reset">Limpiar</button>
             <button class="btn btn-primary btn-lg" type="submit" id="submit-btn">
-                <i class="bi bi-send-fill me-2"></i>
-                <span id="submit-btn-text">Enviar a SAP</span>
+                <i class="bi bi-floppy-fill me-2"></i> <!-- Ícono de guardar -->
+                <span id="submit-btn-text">Guardar para Aprobación</span>
             </button>
         </div>
     </div>
@@ -266,14 +272,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const template = document.getElementById('cuenta-template');
     const btnAgregar = document.getElementById('btn-agregar-cuenta');
     const totalPagarEl = document.getElementById('total-pagar');
-    const toggleCheque = document.getElementById('toggle-cheque');
     const chequeContainer = document.getElementById('cheque-details-container');
-    
     const checkSumInput = document.getElementById('CheckSum');
     const checkAccountSelect = document.getElementById('CheckAccount');
     const bankNameDisplay = document.getElementById('BankNameDisplay');
     const bankCodeInput = document.getElementById('BankCode');
     const accountNumInput = document.getElementById('AccounttNum');
+    const currencySelect = document.getElementById('DocCurrency');
+
+    
+    // ===========================================================================
+    // INICIO: LÓGICA AÑADIDA PARA SINCRONIZAR CAMPOS
+    // ===========================================================================
+    const cardNameInput = document.getElementById('CardName');
+    const journalRemarksInput = document.getElementById('JournalRemarks');
+    
+    // Escuchar el evento 'input' en el campo del nombre del beneficiario
+    cardNameInput.addEventListener('input', function() {
+        // Copiar el valor al campo de confirmación
+        journalRemarksInput.value = this.value;
+    });
+    // ===========================================================================
+    // FIN: LÓGICA AÑADIDA
+    // ===========================================================================
     
     let sapAccountsList = [];
     let sapBankAccountsList = [];
@@ -351,7 +372,9 @@ document.addEventListener('DOMContentLoaded', function() {
         select.appendChild(new Option('Seleccione una cuenta...', ''));
         if (sapAccountsList.length > 0) {
             sapAccountsList.forEach(account => {
-                const optionText = `${account.Name} (${account.Code})`;
+                // Usar para ver el código junto al nombre:
+                //const optionText = `${account.Name} (${account.Code})`;
+                const optionText = `${account.Name}`;
                 select.appendChild(new Option(optionText, account.Code));
             });
         }
@@ -365,7 +388,11 @@ document.addEventListener('DOMContentLoaded', function() {
             total += parseFloat(input.value) || 0;
         });
         
-        totalPagarEl.textContent = 'Q ' + total.toFixed(2);
+        // Determinar el símbolo de la moneda basado en la selección
+        const currencySymbol = currencySelect.value === 'USD' ? '$' : 'Q';
+
+        // Actualizar el texto con el símbolo correcto
+        totalPagarEl.textContent = currencySymbol + ' ' + total.toFixed(2);
         checkSumInput.value = total.toFixed(2);
     }
 
@@ -378,11 +405,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         submitBtn.disabled = true;
-        submitBtnText.textContent = 'Enviando...';
+        submitBtnText.textContent = 'Guardando...';
 
         try {
             const formData = new FormData(form);
-            const response = await fetch('scripts/handle_pago_sap.php', { method: 'POST', body: formData });
+            const response = await fetch('scripts/handle_pago_sap.php', { method: 'POST', body: formData }); 
             
             const result = await response.json();
             if (!response.ok) {
@@ -395,18 +422,12 @@ document.addEventListener('DOMContentLoaded', function() {
             agregarFila();
             calcularTotal();
             form.classList.remove('was-validated');
-
-            if (toggleCheque.checked) {
-                toggleCheque.checked = false;
-                toggleCheque.dispatchEvent(new Event('change'));
-            }
-
         } catch (error) {
-            console.error('Error al enviar el pago:', error);
+            console.error('Error al guardar la solicitud:', error);
             showNotification(error.message, 'error');
         } finally {
             submitBtn.disabled = false;
-            submitBtnText.textContent = 'Enviar a SAP';
+            submitBtnText.textContent = 'Guardar para Aprobación';
         }
     });
 
@@ -449,16 +470,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    toggleCheque.addEventListener('change', function() {
-        const isChecked = this.checked;
-        chequeContainer.style.display = isChecked ? 'block' : 'none';
-        
-        const chequeRequiredIndicators = chequeContainer.querySelectorAll('.cheque-required-indicator');
-        chequeRequiredIndicators.forEach(span => span.style.display = isChecked ? 'inline' : 'none');
+    currencySelect.addEventListener('change', calcularTotal);
 
-        const checkAccountField = document.getElementById('CheckAccount');
-        checkAccountField.required = isChecked;
-    });
 
     // --- INICIALIZACIÓN ---
     cargarCuentasSAP();

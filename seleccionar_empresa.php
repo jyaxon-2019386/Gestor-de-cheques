@@ -61,10 +61,10 @@ require_once 'templates/layouts/header.php';
         
         <!-- Tarjeta: UNHESA -->
         <div class="col-lg-4 col-md-6">
-            <div class="company-card">
+            <div class="support-card">
                 <div class="card-icon-wrapper"><i class="bi bi-building"></i></div>
                 <h3>UNHESA</h3>
-                <p class="text-muted">Base de Datos: TEST_UNHESA_ZZZ</p>
+                <p class="text-muted">Base de Datos: UNHESA</p>
                 <a href="crear_pago_sap.php?empresa=TEST_UNHESA_ZZZ" class="btn btn-primary mt-auto">
                     Seleccionar <i class="bi bi-arrow-right ms-1"></i>
                 </a>
@@ -73,10 +73,10 @@ require_once 'templates/layouts/header.php';
 
         <!-- Tarjeta: PROQUIMA -->
         <div class="col-lg-4 col-md-6">
-            <div class="company-card">
+            <div class="support-card">
                 <div class="card-icon-wrapper"><i class="bi bi-briefcase-fill"></i></div>
                 <h3>PROQUIMA</h3>
-                <p class="text-muted">Base de Datos: TEST_PROQUIMA_ZZZ</p>
+                <p class="text-muted">Base de Datos: SBOPROQUIMA</p>
                 <a href="crear_pago_sap.php?empresa=TEST_PROQUIMA_ZZZ" class="btn btn-info mt-auto">
                     Seleccionar <i class="bi bi-arrow-right ms-1"></i>
                 </a>
