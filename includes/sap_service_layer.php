@@ -4,34 +4,54 @@
 class SapServiceLayer {
     private $config;
     private $cookie_file;
-    // MODIFICACIÓN: Propiedad para almacenar la DB de la empresa de la sesión
     private $company_db; 
     private $is_logged_in = false;
+    private $base_uri;
 
-    public function __construct() {
-        $this->config = require(__DIR__ . '/../config/sap_config.php');
+    // ==========================================================
+    // INICIO DE LA MODIFICACIÓN: Constructor flexible
+    // ==========================================================
+    public function __construct($company_db_name = null) {
+        // Cargar todas las configuraciones de SAP
+        $all_configs = require(__DIR__ . '/../config/sap_config.php');
+
+        // Determinar qué empresa usar: la proporcionada o la de la sesión
+        if ($company_db_name === null) {
+            $company_db_name = $_SESSION['company_db'] ?? null;
+        }
+
+        // Si después de todo, no hay empresa, lanzamos el error
+        if (empty($company_db_name)) {
+            throw new Exception("Error: No se ha seleccionado una empresa en SAP.");
+        }
+
+        // Verificar si existe la configuración para la empresa seleccionada
+        if (!isset($all_configs[$company_db_name])) {
+            throw new Exception("Configuración no encontrada para la empresa: " . htmlspecialchars($company_db_name));
+        }
+
+        // Asignar la configuración específica de la empresa a la clase
+        $this->config = $all_configs[$company_db_name];
+        $this->company_db = $company_db_name;
+        $this->base_uri = $this->config['base_uri'];
+
         // Usar un archivo de cookie único por sesión para evitar conflictos
         $this->cookie_file = sys_get_temp_dir() . '/sap_cookie_' . session_id() . '.txt';
-
-        // MODIFICACIÓN: Obtener la empresa desde la sesión al crear el objeto
-        if (isset($_SESSION['company_db'])) {
-            $this->company_db = $_SESSION['company_db'];
-        }
     }
+    // ==========================================================
+    // FIN DE LA MODIFICACIÓN
+    // ==========================================================
 
     public function login() {
-        // MODIFICACIÓN: Validar que se haya seleccionado una empresa antes de intentar el login
-        if (empty($this->company_db)) {
-            throw new Exception("Error: No se ha seleccionado una empresa en SAP para la sesión actual.");
-        }
-
+        // La validación de $this->company_db ya se hizo en el constructor
+        
         $login_data = [
             'UserName' => $this->config['username'],
             'Password' => $this->config['password'],
-            'CompanyDB' => $this->company_db // Se usa la empresa guardada en la sesión
+            'CompanyDB' => $this->company_db // Se usa la empresa determinada en el constructor
         ];
 
-        $ch = curl_init($this->config['base_uri'] . 'Login');
+        $ch = curl_init($this->base_uri . 'Login');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($login_data));
@@ -49,12 +69,15 @@ class SapServiceLayer {
             return json_decode($response, true);
         } else {
             $this->is_logged_in = false;
-            throw new Exception("Fallo en el login de SAP: " . $response);
+            // Intenta decodificar el error para un mensaje más claro
+            $error_details = json_decode($response, true);
+            $error_message = $error_details['error']['message']['value'] ?? $response;
+            throw new Exception("Fallo en el login de SAP: " . $error_message);
         }
     }
 
     public function post($endpoint, $data) {
-        $ch = curl_init($this->config['base_uri'] . $endpoint);
+        $ch = curl_init($this->base_uri . $endpoint);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -71,7 +94,7 @@ class SapServiceLayer {
     }
 
     public function get($endpoint) {
-        $ch = curl_init($this->config['base_uri'] . $endpoint);
+        $ch = curl_init($this->base_uri . $endpoint);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_COOKIEFILE, $this->cookie_file);
@@ -88,10 +111,8 @@ class SapServiceLayer {
     public function logout() {
         if (!$this->is_logged_in) return;
 
-        $ch = curl_init($this->config['base_uri'] . 'Logout');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $ch = curl_init($this->base_uri . 'Logout');
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, '');
         curl_setopt($ch, CURLOPT_COOKIEFILE, $this->cookie_file);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
@@ -99,7 +120,7 @@ class SapServiceLayer {
         curl_close($ch);
 
         if (file_exists($this->cookie_file)) {
-            unlink($this->cookie_file);
+            @unlink($this->cookie_file);
         }
         $this->is_logged_in = false;
     }
@@ -108,9 +129,8 @@ class SapServiceLayer {
         return $this->is_logged_in;
     }
     
-    // Limpiar el cookie al destruir el objeto para cerrar sesión si se olvida
     public function __destruct() {
-        // Opcional: Descomentar si se desea forzar el logout al final del script
-        // $this->logout(); 
+        // Es una buena práctica asegurarse de que la sesión se cierre.
+        $this->logout(); 
     }
 }

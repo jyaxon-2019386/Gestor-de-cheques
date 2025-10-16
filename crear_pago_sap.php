@@ -37,7 +37,7 @@ if (empty($_SESSION['company_db'])) {
 
 
 // Solo usuarios de finanzas o admins pueden acceder
-if (!in_array($_SESSION['rol'], ['finanzas', 'admin'])) {
+if (!in_array($_SESSION['rol'], ['usuario', 'admin'])) {
     die("Acceso denegado. No tienes permiso para acceder a esta página.");
 }
 

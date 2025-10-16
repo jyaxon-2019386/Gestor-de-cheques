@@ -40,7 +40,15 @@ function puede_aprobar() {
         return false;
     }
     // Añadimos 'finanzas' a la lista de roles con poder de decisión.
-    $roles_aprobadores = ['admin', 'gerente_general', 'gerente', 'jefe_de_area', 'finanzas'];
+    $roles_aprobadores = ['admin', 'gerente_general', 'gerente', 'jefe_de_area'];
+    return in_array($_SESSION['rol'], $roles_aprobadores);
+}
+function es_finanzas() {
+    if (!isset($_SESSION['rol'])) {
+        return false;
+    }
+    // Añadimos 'finanzas' a la lista de roles con poder de decisión.
+    $roles_aprobadores = ['finanzas'];
     return in_array($_SESSION['rol'], $roles_aprobadores);
 }
 
