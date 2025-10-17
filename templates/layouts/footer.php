@@ -7,12 +7,33 @@ if (isset($_SESSION['usuario_id'])): ?>
     </div>
 <?php endif; ?>
 
+<style>
+#notification-container {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.toast-notification {
+    min-width: 300px; max-width: 400px; padding: 15px 20px; border-radius: 8px;
+    color: #fff; background-color: #333; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex; align-items: center; gap: 15px;
+    opacity: 0; transform: translateX(100%);
+    animation: slideIn 0.5s forwards;
+    word-break: break-word;
+}
+.toast-notification.fade-out { animation: slideOut 0.5s forwards; }
+.toast-notification.success { background-color: #28a745; }
+.toast-notification.error { background-color: #dc3545; }
+.toast-notification.info { background-color: #17a2b8; }
+.toast-notification i { font-size: 1.5rem; line-height: 1; }
+@keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+@keyframes slideOut { to { opacity: 0; transform: translateX(100%); } }
+</style>
+
+
 <!-- ========================================================== -->
 <!-- COMPONENTES REUTILIZABLES (MODALS Y TOASTS) -->
 <!-- ========================================================== -->
-
-<!-- Contenedor para las Alertas Toast -->
-<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1150"></div>
+<div id="notification-container"></div>
 
 <!-- Modal para Confirmar Rechazo con Motivo -->
 <div class="modal fade" id="rejectionModal" tabindex="-1" aria-labelledby="rejectionModalLabel" aria-hidden="true">
@@ -66,17 +87,29 @@ if (isset($_SESSION['usuario_id'])): ?>
 <!-- JAVASCRIPT PERSONALIZADO Y CENTRALIZADO -->
 <script>
     // --- FUNCIÓN GLOBAL PARA MOSTRAR ALERTAS TIPO "TOAST" ---
-    function showToast(message, type = 'info') {
-        const toastContainer = document.querySelector('.toast-container');
-        if (!toastContainer) return;
-        const toastId = 'toast-' + Date.now();
-        const toastClasses = { success: { bg: 'bg-success', icon: 'bi-check-circle-fill' }, error: { bg: 'bg-danger', icon: 'bi-x-circle-fill' }, info: { bg: 'bg-info', icon: 'bi-info-circle-fill' } };
-        const selectedType = toastClasses[type] || toastClasses.info;
-        const toastHTML = `<div id="${toastId}" class="toast align-items-center text-white ${selectedType.bg} border-0" role="alert"><div class="d-flex"><div class="toast-body"><i class="bi ${selectedType.icon} me-2"></i>${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`;
-        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-        const toast = new bootstrap.Toast(document.getElementById(toastId), { delay: 5000 });
-        toast.show();
-        document.getElementById(toastId).addEventListener('hidden.bs.toast', e => e.target.remove());
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('notification-container');
+        if (!container) return;
+
+        const notif = document.createElement('div');
+        notif.className = `toast-notification ${type}`;
+        
+        const iconClasses = {
+            success: 'bi-check-circle-fill',
+            error: 'bi-x-circle-fill',
+            info: 'bi-info-circle-fill'
+        };
+        const iconClass = iconClasses[type] || iconClasses.info;
+
+        notif.innerHTML = `<i class="bi ${iconClass}"></i><div>${message}</div>`;
+        container.appendChild(notif);
+
+        // Auto-eliminar después de 5 segundos
+        setTimeout(() => {
+            notif.classList.add('fade-out');
+            // Esperar a que termine la animación de salida para remover el elemento
+            notif.addEventListener('animationend', () => notif.remove());
+        }, 5000);
     }
 
     document.addEventListener('DOMContentLoaded', function() {

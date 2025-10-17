@@ -180,4 +180,4 @@ require_once 'templates/layouts/header.php';
 </nav>
 <?php endif; ?>
 
-<?php require_once 'templates/layouts/footer.php'; ?>```
+<?php require_once 'templates/layouts/footer.php'; ?>

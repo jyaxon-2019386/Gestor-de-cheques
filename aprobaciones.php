@@ -1,9 +1,8 @@
 <?php
-// Nombre del archivo: finanzas_sap.php
+// Nombre del archivo: finanzas_sap.php (Con Corrección de Fecha)
 require_once 'includes/functions.php';
 proteger_pagina();
 
-// Verificar que el usuario tiene rol de finanzas o es admin
 if (!in_array($_SESSION['rol'], ['finanzas', 'admin'])) {
     die("No tienes permiso para acceder a esta página.");
 }
@@ -47,7 +46,7 @@ $pagos_aprobados = $result->fetch_all(MYSQLI_ASSOC);
 $stmt_pagos->close();
 ?>
 
-<!-- VISTA HTML DE LA PÁGINA (sin cambios) -->
+<!-- VISTA HTML DE LA PÁGINA (sin cambios en la estructura) -->
 <div class="mb-5">
     <?php generar_breadcrumbs(); ?>
     <h1 class="fs-2 text-white mt-2">Gestión de Pagos a SAP</h1>
@@ -68,14 +67,30 @@ $stmt_pagos->close();
                 <div class="row g-3 align-items-center">
                     <div class="col-lg-3"><div class="fw-bold">Solicitud #<?php echo $solicitud['id']; ?></div><small class="text-muted">Solicitante: <?php echo htmlspecialchars($solicitud['nombre_usuario']); ?></small></div>
                     <div class="col-lg-4"><div class="fw-bold"><?php echo htmlspecialchars($solicitud['CardName']); ?></div><small class="text-muted"><?php echo htmlspecialchars($solicitud['Remarks']); ?></small></div>
-                    <div class="col-lg-2 text-lg-center"><?php $currencySymbol = ($solicitud['DocCurrency'] === 'USD') ? '$' : 'Q'; ?><div class="fw-bold fs-5"><?php echo $currencySymbol; ?> <?php echo number_format($solicitud['total_pagar'], 2); ?></div><small class="text-muted">Aprobado: <?php echo date("d/m/Y", strtotime($solicitud['fecha_aprobacion'])); ?></small></div>
+                    <div class="col-lg-2 text-lg-center">
+                        <?php $currencySymbol = ($solicitud['DocCurrency'] === 'USD') ? '$' : 'Q'; ?>
+                        <div class="fw-bold fs-5"><?php echo $currencySymbol; ?> <?php echo number_format($solicitud['total_pagar'], 2); ?></div>
+                        
+                        <!-- ========================================================== -->
+                        <!-- INICIO: CORRECCIÓN DE LA FECHA -->
+                        <!-- ========================================================== -->
+                        <small class="text-muted">
+                            Aprobado: 
+                            <?php if (!empty($solicitud['fecha_aprobacion']) && strtotime($solicitud['fecha_aprobacion']) > 0): ?>
+                                <strong class="text-white"><?php echo date("d/m/Y", strtotime($solicitud['fecha_aprobacion'])); ?></strong>
+                            <?php else: ?>
+                                <span class="text-warning">- N/A -</span>
+                            <?php endif; ?>
+                        </small>
+                        <!-- ========================================================== -->
+                        <!-- FIN: CORRECCIÓN DE LA FECHA -->
+                        <!-- ========================================================== -->
+
+                    </div>
                     <div class="col-lg-3 text-lg-end approval-actions">
-                        <!-- Las clases .btn-enviar-sap y .btn-rechazar-finanzas son detectadas por el JS del footer -->
                         <button class="btn btn-sm btn-success flex-grow-1 btn-enviar-sap" data-id="<?php echo $solicitud['id']; ?>"><i class="bi bi-send-fill"></i> Enviar a SAP</button>
                         <button class="btn btn-sm btn-danger btn-rechazar-finanzas" data-id="<?php echo $solicitud['id']; ?>"><i class="bi bi-x-circle-fill"></i> Rechazar</button>
-                        <button class="btn btn-sm btn-outline-secondary btn-ver-detalles" data-id="<?php echo $solicitud['id']; ?>" title="Ver Detalles">
-        <i class="bi bi-eye"></i>
-    </button>
+                        <button class="btn btn-sm btn-outline-secondary btn-ver-detalles" data-id="<?php echo $solicitud['id']; ?>" title="Ver Detalles"><i class="bi bi-eye"></i></button>
                     </div>
                 </div>
             </div>
@@ -86,6 +101,5 @@ $stmt_pagos->close();
 </div>
 
 <?php 
-// El footer contiene toda la lógica JavaScript. Ya no se necesita un script local.
 require_once 'templates/layouts/footer.php'; 
 ?>

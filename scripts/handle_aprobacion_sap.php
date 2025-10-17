@@ -1,5 +1,5 @@
 <?php
-// scripts/handle_aprobacion_sap.php (Versión Final con Lógica Corregida)
+// Nombre del archivo: scripts/handle_aprobacion_sap.php
 ini_set("display_errors", 1);
 error_reporting(E_ALL);
 
@@ -10,19 +10,27 @@ header("Content-Type: application/json");
 
 // --- CONFIGURACIÓN ---
 $TASA_CAMBIO_USD_EVALUACION = 7.8;
-$MONTO_LIMITE_ESCALAR = 25000; // Límite en QTZ para requerir aprobación de Gerente
+$MONTO_LIMITE_GG = 20000; // Límite para requerir aprobación de Gerente General
 
-if (!puede_aprobar()) {
+// --- VALIDACIÓN DE ENTRADA Y PERMISOS INICIALES ---
+if (!puede_aprobar() && !es_finanzas()) {
     http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'No tienes permiso.']);
+    echo json_encode(['status' => 'error', 'message' => 'No tienes permiso para realizar esta acción.']);
     exit();
 }
 
-$solicitud_id = $_POST['solicitud_id'] ?? null;
-$accion = $_POST['accion'] ?? null;
+$solicitud_id = filter_input(INPUT_POST, 'solicitud_id', FILTER_VALIDATE_INT);
+$accion = $_POST['accion'] ?? '';
+$motivo_rechazo = trim($_POST['motivo'] ?? '');
+
+if (!$solicitud_id || !in_array($accion, ['Aprobado', 'Rechazado'])) {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Acción o ID de solicitud inválido.']);
+    exit();
+}
 
 try {
-    // 1. OBTENER DATOS DE LA SOLICITUD
+    // 1. OBTENER DATOS DE LA SOLICITUD Y VALIDAR PERMISOS
     $stmt_check = $conexion->prepare("SELECT * FROM pagos_pendientes WHERE id = ?");
     $stmt_check->bind_param("i", $solicitud_id);
     $stmt_check->execute();
@@ -30,56 +38,89 @@ try {
     $stmt_check->close();
 
     if (!$solicitud) throw new Exception("La solicitud #{$solicitud_id} no existe.");
-    if ($solicitud['aprobador_actual_id'] != $_SESSION['usuario_id'] && !es_admin()) {
-        throw new Exception("No eres el aprobador asignado para esta solicitud.");
-    }
+
+    $puede_actuar = (es_admin() || 
+                    (es_finanzas() && $solicitud['estado'] === 'Aprobado' && $accion === 'Rechazado') || 
+                    (puede_aprobar() && $solicitud['aprobador_actual_id'] == $_SESSION['usuario_id']));
+
+    if (!$puede_actuar) throw new Exception("No tienes permiso para actuar sobre esta solicitud en su estado actual.");
 
     $conexion->begin_transaction();
 
+    // --- LÓGICA DE RECHAZO ---
     if ($accion === 'Rechazado') {
-        $sql = "UPDATE pagos_pendientes SET estado = 'Rechazado', aprobador_actual_id = NULL, MensajeErrorSAP = 'Rechazado por aprobador' WHERE id = ?";
+        if (empty($motivo_rechazo)) throw new Exception("El motivo del rechazo es obligatorio.");
+        $sql = "UPDATE pagos_pendientes SET estado = 'Rechazado', aprobador_actual_id = NULL, motivo_rechazo = ? WHERE id = ?";
         $stmt_update = $conexion->prepare($sql);
-        $stmt_update->bind_param("i", $solicitud_id);
+        $stmt_update->bind_param("si", $motivo_rechazo, $solicitud_id);
         $message = "Solicitud rechazada correctamente.";
-    } else {
-        // --- LÓGICA DE APROBACIÓN MEJORADA ---
+    } 
+    // --- LÓGICA DE APROBACIÓN ---
+    elseif ($accion === 'Aprobado') {
+        $message = "Solicitud Aprobada."; // Mensaje por defecto
+
+        // --- MOTOR DE FLUJO DE TRABAJO ---
+        $departamento = $solicitud['departamento_solicitante'];
+        $estado_actual = $solicitud['estado'];
+
+        // --- PASO 1: ENCONTRAR AL SIGUIENTE APROBADOR EN LA CADENA ---
+        // Buscamos al jefe del aprobador actual.
+        $stmt_siguiente = $conexion->prepare("SELECT jefe_id FROM usuarios WHERE id = ?");
+        $stmt_siguiente->bind_param("i", $solicitud['aprobador_actual_id']);
+        $stmt_siguiente->execute();
+        $siguiente_aprobador_id = $stmt_siguiente->get_result()->fetch_assoc()['jefe_id'] ?? null;
+        $stmt_siguiente->close();
+
+        // --- PASO 2: APLICAR LÓGICAS CONDICIONALES ---
         $monto_evaluacion = ($solicitud['DocCurrency'] === 'USD') ? $solicitud['total_pagar'] * $TASA_CAMBIO_USD_EVALUACION : $solicitud['total_pagar'];
-        
-        $stmt_rol = $conexion->prepare("SELECT rol FROM usuarios WHERE id = ?");
-        $stmt_rol->bind_param("i", $_SESSION['usuario_id']);
-        $stmt_rol->execute();
-        $rol_aprobador = $stmt_rol->get_result()->fetch_assoc()['rol'] ?? 'usuario';
-        $stmt_rol->close();
-        
-        $roles_autoridad_final = ['admin', 'gerente_general'];
+        $necesita_aprobacion_gg = ($monto_evaluacion >= $MONTO_LIMITE_GG);
 
-        // Si el monto es alto Y el aprobador NO es la autoridad final, entonces se escala.
-        if ($monto_evaluacion >= $MONTO_LIMITE_ESCALAR && !in_array($rol_aprobador, $roles_autoridad_final)) {
-            // --- Caso 1: Escalar a Gerente General ---
-            $gerente_id_result = $conexion->query("SELECT id FROM usuarios WHERE rol IN ('admin', 'gerente_general') LIMIT 1");
-            $gerente_general_id = $gerente_id_result->fetch_assoc()['id'] ?? null;
+        // CONDICIÓN DE ESCALAR A GERENTE GENERAL (SOLO PARA LOGÍSTICA)
+        if ($departamento === 'Logistica' && $estado_actual === 'Pendiente Gerente Bodega' && $necesita_aprobacion_gg) {
+            $gg_result = $conexion->query("SELECT id FROM usuarios WHERE rol = 'gerente_general' LIMIT 1");
+            $gerente_general_id = $gg_result->fetch_assoc()['id'] ?? null;
+            if (!$gerente_general_id) throw new Exception("No se encontró un Gerente General para la aprobación final.");
+            
+            // Reasignamos al Gerente General
+            $siguiente_aprobador_id = $gerente_general_id;
+            $nuevo_estado = 'Pendiente Gerente General';
+            $message = "Aprobado por Gerente. Pasa a Gerente General por el monto.";
+        }
 
-            if (!$gerente_general_id) throw new Exception("No se encontró un Gerente para escalar la aprobación.");
-
-            $sql = "UPDATE pagos_pendientes SET estado = 'Pendiente de Gerente General', aprobador_actual_id = ? WHERE id = ?";
+        // --- PASO 3: DECIDIR EL ESTADO FINAL ---
+        if (isset($nuevo_estado)) {
+            // Si ya definimos un nuevo estado (como escalar a GG), lo usamos.
+            $sql = "UPDATE pagos_pendientes SET estado = ?, aprobador_actual_id = ? WHERE id = ?";
             $stmt_update = $conexion->prepare($sql);
-            $stmt_update->bind_param("ii", $gerente_general_id, $solicitud_id);
-            $message = "Aprobado. La solicitud ahora requiere la aprobación final del Gerente General.";
+            $stmt_update->bind_param("sii", $nuevo_estado, $siguiente_aprobador_id, $solicitud_id);
+        } elseif ($siguiente_aprobador_id) {
+            // Si hay un siguiente jefe en la cadena, simplemente reasignamos.
+            // Esto funciona tanto para el flujo normal como para el de Logística (Jefe -> Gerente)
+            $nuevo_estado = ($departamento === 'Logistica' && $estado_actual === 'Pendiente Jefe Bodega') ? 'Pendiente Gerente Bodega' : 'Pendiente de Jefe'; // Asigna el siguiente estado lógico
+            
+            $sql = "UPDATE pagos_pendientes SET estado = ?, aprobador_actual_id = ? WHERE id = ?";
+            $stmt_update = $conexion->prepare($sql);
+            $stmt_update->bind_param("sii", $nuevo_estado, $siguiente_aprobador_id, $solicitud_id);
+            $message = "Aprobado. La solicitud ha pasado al siguiente nivel.";
         } else {
-            // --- Caso 2: Aprobación Final (¡AQUÍ ESTÁ LA CLAVE!) ---
-            // Esto se ejecuta si el monto es BAJO, o si el que aprueba YA ES un gerente/admin.
+            // Si no hay más jefes, esta es la aprobación final. Pasa a Finanzas.
             $sql = "UPDATE pagos_pendientes SET estado = 'Aprobado', aprobador_actual_id = NULL, aprobado_por_usuario = ?, fecha_aprobacion = NOW() WHERE id = ?";
             $stmt_update = $conexion->prepare($sql);
             $stmt_update->bind_param("si", $_SESSION['nombre_usuario'], $solicitud_id);
-            $message = "¡Solicitud Aprobada! Ahora está visible para Finanzas.";
+            $message = "¡Aprobación final completada! La solicitud está ahora en Finanzas.";
         }
+    } else {
+        throw new Exception("Acción no válida.");
     }
 
-    $stmt_update->execute();
-    $stmt_update->close();
-    $conexion->commit();
-
-    echo json_encode(['status' => 'success', 'message' => $message]);
+    if (isset($stmt_update)) {
+        $stmt_update->execute();
+        $stmt_update->close();
+        $conexion->commit();
+        echo json_encode(['status' => 'success', 'message' => $message]);
+    } else {
+        throw new Exception("No se definió ninguna acción de actualización.");
+    }
 
 } catch (Exception $e) {
     if ($conexion) $conexion->rollback();

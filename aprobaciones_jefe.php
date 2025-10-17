@@ -16,7 +16,12 @@ $filtro_q = isset($_GET['q']) ? trim($_GET['q']) : '';
 $sql_bandeja = "SELECT p.*, u.nombre_usuario 
                 FROM pagos_pendientes p
                 JOIN usuarios u ON p.usuario_id = u.id
-                WHERE p.estado IN ('Pendiente de Jefe', 'Pendiente de Gerente General')";
+                WHERE p.estado IN (
+                    'Pendiente de Jefe', 
+                    'Pendiente Jefe Bodega', 
+                    'Pendiente Gerente Bodega', 
+                    'Pendiente Gerente General'
+                )";
 
 $param_types = ""; $param_values = [];
 if (!es_admin()) {

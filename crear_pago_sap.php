@@ -134,6 +134,8 @@ require_once 'templates/layouts/header.php';
             <div class="form-card mb-4">
                 <div class="form-card-header"><i class="bi bi-info-circle-fill me-2"></i>Información General</div>
                 <div class="row g-3">
+                    
+
                     <div class="col-md-6">
                         <label for="DocDate" class="form-label">Fecha del Documento <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="DocDate" name="DocDate" value="<?php echo date('Y-m-d'); ?>" required>

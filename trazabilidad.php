@@ -1,5 +1,5 @@
 <?php
-// trazabilidad.php - VERSIÓN REDISEÑO FINAL
+// Nombre del archivo: trazabilidad.php
 require_once 'includes/functions.php';
 proteger_pagina();
 require_once 'templates/layouts/header.php';
@@ -8,38 +8,57 @@ require_once 'config/database.php';
 // --- LÓGICA DE FILTRADO Y CONSULTA ---
 $filtro_estado = isset($_GET['filtro']) ? $_GET['filtro'] : '';
 
-// Contadores para los botones de filtro
-$sql_counts = "SELECT 
-    SUM(CASE WHEN estado = 'Pendiente' THEN 1 ELSE 0 END) as pendientes,
-    SUM(CASE WHEN estado = 'Aprobado' THEN 1 ELSE 0 END) as aprobados,
-    SUM(CASE WHEN estado = 'Pagado' THEN 1 ELSE 0 END) as pagados,
-    SUM(CASE WHEN estado = 'Rechazado' THEN 1 ELSE 0 END) as rechazados
-FROM solicitud_cheques";
-if (!es_admin() && $_SESSION['rol'] !== 'finanzas') {
-    $sql_counts .= " WHERE usuario_id = " . $_SESSION['usuario_id'];
-}
-$counts = $conexion->query($sql_counts)->fetch_assoc();
-$pendientes = $counts['pendientes'] ?? 0;
-$aprobados = $counts['aprobados'] ?? 0;
-$pagados = $counts['pagados'] ?? 0;
-$rechazados = $counts['rechazados'] ?? 0;
+// --- Contadores para los botones de filtro ---
+// Esta consulta cuenta el total de solicitudes en cada estado, respetando los permisos de visibilidad.
+$sql_counts_base = "SELECT estado, COUNT(id) as total FROM pagos_pendientes";
+$where_counts = "";
+$param_types_counts = "";
+$param_values_counts = [];
 
-// Consulta principal de solicitudes
-$sql_solicitudes = "SELECT s.*, u.nombre_usuario FROM solicitud_cheques s JOIN usuarios u ON s.usuario_id = u.id";
+if (!es_admin() && !in_array($_SESSION['rol'], ['finanzas', 'jefe_de_area', 'gerente_general'])) {
+    $where_counts = " WHERE usuario_id = ?";
+    $param_types_counts = "i";
+    $param_values_counts[] = $_SESSION['usuario_id'];
+}
+$sql_counts_base .= $where_counts . " GROUP BY estado";
+
+$stmt_counts = $conexion->prepare($sql_counts_base);
+if (!empty($param_values_counts)) {
+    $stmt_counts->bind_param($param_types_counts, ...$param_values_counts);
+}
+$stmt_counts->execute();
+$result_counts = $stmt_counts->get_result();
+$counts = [];
+while ($row = $result_counts->fetch_assoc()) {
+    $counts[$row['estado']] = $row['total'];
+}
+$stmt_counts->close();
+
+// Inicializar contadores para evitar errores
+$pendientes_jefe = $counts['Pendiente de Jefe'] ?? 0;
+$pendientes_gerente = $counts['Pendiente de Gerente General'] ?? 0;
+$aprobados = $counts['Aprobado'] ?? 0;
+$procesados = $counts['ProcesadoSAP'] ?? 0;
+$rechazados = $counts['Rechazado'] ?? 0;
+$total_solicitudes = array_sum($counts);
+
+
+// --- Consulta principal de solicitudes ---
+$sql_solicitudes = "SELECT p.*, u.nombre_usuario FROM pagos_pendientes p JOIN usuarios u ON p.usuario_id = u.id";
 $where_conditions = [];
 $param_types = "";
 $param_values = [];
 
-// Construir condiciones WHERE
-if (!es_admin() && $_SESSION['rol'] !== 'finanzas') {
-    $where_conditions[] = "s.usuario_id = ?";
+// Aplicar filtro de visibilidad
+if (!es_admin() && !in_array($_SESSION['rol'], ['finanzas', 'jefe_de_area', 'gerente_general'])) {
+    $where_conditions[] = "p.usuario_id = ?";
     $param_types .= "i";
     $param_values[] = $_SESSION['usuario_id'];
 }
 
-// Filtro por estado
+// Aplicar filtro por estado
 if (!empty($filtro_estado)) {
-    $where_conditions[] = "s.estado = ?";
+    $where_conditions[] = "p.estado = ?";
     $param_types .= "s";
     $param_values[] = $filtro_estado;
 }
@@ -48,7 +67,7 @@ if (!empty($where_conditions)) {
     $sql_solicitudes .= " WHERE " . implode(" AND ", $where_conditions);
 }
 
-$sql_solicitudes .= " ORDER BY s.fecha_solicitud DESC";
+$sql_solicitudes .= " ORDER BY p.id DESC"; // Ordenar por ID descendente para ver lo más reciente primero
 
 $stmt_solicitudes = $conexion->prepare($sql_solicitudes);
 if (!empty($param_values)) {
@@ -56,119 +75,79 @@ if (!empty($param_values)) {
 }
 $stmt_solicitudes->execute();
 $resultado_solicitudes = $stmt_solicitudes->get_result();
+$stmt_solicitudes->close();
 ?>
 
 <!-- Encabezado de la Página -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <?php generar_breadcrumbs(); ?>
-        <h1 class="fs-2 text-white mt-2">Trazabilidad Global</h1>
+        <h1 class="fs-2 text-white mt-2">Trazabilidad de Pagos SAP</h1>
+        <p class="text-muted">Vista cronológica de todas las solicitudes y sus estados.</p>
     </div>
-    <a href="#" class="btn btn-light"><i class="bi bi-download me-2"></i>Exportar</a>
 </div>
 
-<!-- NUEVOS BOTONES DE FILTRO DE ESTADO -->
+<!-- BOTONES DE FILTRO DE ESTADO ADAPTADOS -->
 <ul class="nav nav-pills mb-4 status-filter-nav">
-    <li class="nav-item">
-        <a class="nav-link <?php echo empty($filtro_estado) ? 'active filter-all' : ''; ?>" href="trazabilidad.php">Todos (<?php echo $pendientes+$aprobados+$pagados+$rechazados; ?>)</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link filter-pending <?php echo ($filtro_estado == 'Pendiente') ? 'active' : ''; ?>" href="trazabilidad.php?filtro=Pendiente">Pendientes (<?php echo $pendientes; ?>)</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link filter-approved <?php echo ($filtro_estado == 'Aprobado') ? 'active' : ''; ?>" href="trazabilidad.php?filtro=Aprobado">Aprobadas (<?php echo $aprobados; ?>)</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link filter-paid <?php echo ($filtro_estado == 'Pagado') ? 'active' : ''; ?>" href="trazabilidad.php?filtro=Pagado">Pagadas (<?php echo $pagados; ?>)</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link filter-rejected <?php echo ($filtro_estado == 'Rechazado') ? 'active' : ''; ?>" href="trazabilidad.php?filtro=Rechazado">Rechazadas (<?php echo $rechazados; ?>)</a>
-    </li>
+    <li class="nav-item"><a class="nav-link <?php echo empty($filtro_estado) ? 'active' : ''; ?>" href="trazabilidad.php">Todos (<?php echo $total_solicitudes; ?>)</a></li>
+    <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Pendiente de Jefe') ? 'active' : ''; ?>" href="?filtro=Pendiente de Jefe">Pend. Jefe (<?php echo $pendientes_jefe; ?>)</a></li>
+    <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Pendiente de Gerente General') ? 'active' : ''; ?>" href="?filtro=Pendiente de Gerente General">Pend. Gerente (<?php echo $pendientes_gerente; ?>)</a></li>
+    <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Aprobado') ? 'active' : ''; ?>" href="?filtro=Aprobado">Aprobadas (<?php echo $aprobados; ?>)</a></li>
+    <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'ProcesadoSAP') ? 'active' : ''; ?>" href="?filtro=ProcesadoSAP">Procesado SAP (<?php echo $procesados; ?>)</a></li>
+    <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Rechazado') ? 'active' : ''; ?>" href="?filtro=Rechazado">Rechazadas (<?php echo $rechazados; ?>)</a></li>
 </ul>
 
-<!-- LÍNEA DE TIEMPO REDISEÑADA -->
+<!-- LÍNEA DE TIEMPO ADAPTADA -->
 <div class="timeline">
     <?php if ($resultado_solicitudes->num_rows > 0): ?>
         <?php while ($solicitud = $resultado_solicitudes->fetch_assoc()): ?>
             <?php
-            // Lógica para determinar color e icono
-            $icon_class = 'bi-hourglass-split'; 
-            $bg_color_class = 'warning';
-            
-            switch ($solicitud['estado']) {
-                case 'Aprobado':
-                    $icon_class = 'bi-check2';
-                    $bg_color_class = 'success';
-                    break;
-                case 'Pagado':
-                    $icon_class = 'bi-archive';
-                    $bg_color_class = 'info';
-                    break;
-                case 'Rechazado':
-                    $icon_class = 'bi-x';
-                    $bg_color_class = 'danger';
-                    break;
-            }
+            // Mapeo de estados a colores e iconos
+            $estado_info = [
+                'Pendiente de Jefe' => ['icon' => 'bi-person-check', 'color' => 'warning'],
+                'Pendiente de Gerente General' => ['icon' => 'bi-person-video3', 'color' => 'warning'],
+                'Aprobado' => ['icon' => 'bi-check-lg', 'color' => 'primary'],
+                'ProcesadoSAP' => ['icon' => 'bi-check-circle-fill', 'color' => 'success'],
+                'Rechazado' => ['icon' => 'bi-x-circle-fill', 'color' => 'danger'],
+            ];
+            $info_actual = $estado_info[$solicitud['estado']] ?? ['icon' => 'bi-question-circle', 'color' => 'secondary'];
             ?>
             <div class="timeline-item">
                 <div class="timeline-icon-wrapper">
-                    <div class="timeline-icon text-<?php echo $bg_color_class; ?> bg-<?php echo $bg_color_class; ?> bg-opacity-10"><i class="bi <?php echo $icon_class; ?>"></i></div>
+                    <div class="timeline-icon text-<?php echo $info_actual['color']; ?> bg-<?php echo $info_actual['color']; ?> bg-opacity-10"><i class="bi <?php echo $info_actual['icon']; ?>"></i></div>
                 </div>
                 <div class="timeline-content">
                     <div class="card timeline-card">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h5 class="card-title">Solicitud #<?php echo $solicitud['id']; ?> - <?php echo htmlspecialchars($solicitud['nombre_cheque']); ?></h5>
-                                    <p class="card-text text-muted small">Solicitado por <?php echo htmlspecialchars($solicitud['nombre_usuario']); ?></p>
+                                    <h5 class="card-title">Solicitud #<?php echo $solicitud['id']; ?> - <?php echo htmlspecialchars($solicitud['CardName']); ?></h5>
+                                    <p class="card-text text-muted small">
+                                        Por <?php echo htmlspecialchars($solicitud['nombre_usuario']); ?> el <?php echo date("d/m/Y H:i", strtotime($solicitud['fecha_creacion'])); ?>
+                                    </p>
+                                    <?php if ($solicitud['estado'] === 'ProcesadoSAP' && !empty($solicitud['NumeroDocumentoSAP'])): ?>
+                                        <p class="card-text small text-success fw-bold">DocEntry SAP: <?php echo $solicitud['NumeroDocumentoSAP']; ?></p>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="text-end">
-                                    <span class="badge text-bg-primary fs-6">GTQ <?php echo number_format($solicitud['valor_quetzales'], 2); ?></span>
-                                    <div class="text-muted small mt-1"><?php echo date("d/m/Y H:i", strtotime($solicitud['fecha_solicitud'])); ?></div>
+                                    <span class="badge text-bg-<?php echo $info_actual['color']; ?> fs-6 mb-1"><?php echo $solicitud['estado']; ?></span>
+                                    <div class="fw-bold">
+                                        <?php echo ($solicitud['DocCurrency'] === 'USD' ? '$' : 'Q'); ?>
+                                        <?php echo number_format($solicitud['total_pagar'], 2); ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="card-footer d-flex justify-content-end gap-2">
-                             <?php if ($solicitud['aprobador_actual_id'] == $_SESSION['usuario_id'] && str_starts_with($solicitud['estado'], 'Pendiente')): ?>
-                                <button class="btn btn-sm btn-success btn-accion-estado" data-id="<?php echo $solicitud['id']; ?>" data-estado="Aprobado">Aprobar</button>
-                                <button class="btn btn-sm btn-danger btn-accion-estado" data-id="<?php echo $solicitud['id']; ?>" data-estado="Rechazado">Rechazar</button>
-                            <?php endif; ?>
-                            <button class="btn btn-sm btn-outline-secondary btn-ver-detalles" data-id="<?php echo $solicitud['id']; ?>">Ver Detalles</button>
-                            <a href="generar_cheque.php?id=<?php echo $solicitud['id']; ?>" target="_blank" class="btn btn-sm btn-outline-info">Imprimir</a>
+                             <button class="btn btn-sm btn-outline-info btn-ver-detalles" data-id="<?php echo $solicitud['id']; ?>">Ver Detalles</button>
                         </div>
                     </div>
                 </div>
             </div>
         <?php endwhile; ?>
     <?php else: ?>
-        <div class="text-center p-5">
-            <i class="bi bi-search fs-1 text-muted"></i>
-            <h4 class="mt-3">No hay solicitudes para mostrar</h4>
-            <p class="text-muted">Intenta seleccionar otro filtro de estado.</p>
-        </div>
+        <div class="text-center p-5"><i class="bi-search fs-1 text-muted"></i><h4 class="mt-3">No hay solicitudes para mostrar</h4><p class="text-muted">Intenta seleccionar otro filtro de estado.</p></div>
     <?php endif; ?>
-</div>
-
-<!-- MODAL PARA VER DETALLES -->
-<div class="modal fade" id="modalVerDetalles" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalLabel">Detalles de la Solicitud</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="detalles-content">
-                <div class="text-center p-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <?php require_once 'templates/layouts/footer.php'; ?>
