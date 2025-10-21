@@ -87,6 +87,7 @@ if (isset($_SESSION['usuario_id'])): ?>
 <!-- JAVASCRIPT PERSONALIZADO Y CENTRALIZADO -->
 <script>
     // --- FUNCIÓN GLOBAL PARA MOSTRAR ALERTAS TIPO "TOAST" ---
+    // Esta función estará disponible globalmente y podrá ser llamada desde main.js
     function showToast(message, type = 'success') {
         const container = document.getElementById('notification-container');
         if (!container) return;
@@ -107,7 +108,6 @@ if (isset($_SESSION['usuario_id'])): ?>
         // Auto-eliminar después de 5 segundos
         setTimeout(() => {
             notif.classList.add('fade-out');
-            // Esperar a que termine la animación de salida para remover el elemento
             notif.addEventListener('animationend', () => notif.remove());
         }, 5000);
     }
@@ -118,6 +118,7 @@ if (isset($_SESSION['usuario_id'])): ?>
         const detailsModal = document.getElementById('detailsModal') ? new bootstrap.Modal(document.getElementById('detailsModal')) : null;
 
         // --- MANEJADOR DE EVENTOS GLOBAL PARA TODA LA APLICACIÓN ---
+        // Este manejador de eventos centralizado es eficiente y maneja clics en botones de acción.
         document.body.addEventListener('click', function(e) {
             const approveButton = e.target.closest('.btn-accion-aprobar');
             const rejectButton = e.target.closest('.btn-accion-rechazar, .btn-rechazar-finanzas');
@@ -239,6 +240,26 @@ if (isset($_SESSION['usuario_id'])): ?>
                 });
             });
         }
+
+        // --- FUNCIONALIDAD EXTRA: MOSTRAR/OCULTAR CONTRASEÑA ---
+        // Se mantiene aquí ya que puede ser usada por varios modales (crear y editar)
+        function setupPasswordToggle(inputId, buttonId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleButton = document.getElementById(buttonId);
+
+            if(toggleButton) {
+                toggleButton.addEventListener('click', function() {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    this.querySelector('i').classList.toggle('bi-eye');
+                    this.querySelector('i').classList.toggle('bi-eye-slash');
+                });
+            }
+        }
+        setupPasswordToggle('edit_password', 'toggleEditPassword');
+        setupPasswordToggle('edit_confirm_password', 'toggleEditConfirmPassword');
+        setupPasswordToggle('create_password', 'toggleCreatePassword');
+        setupPasswordToggle('create_confirm_password', 'toggleCreateConfirmPassword');
     });
 </script>
 </body>

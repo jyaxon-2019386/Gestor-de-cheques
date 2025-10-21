@@ -87,7 +87,7 @@ require_once 'templates/layouts/header.php';
 
 <!-- BARRA DE FILTROS ADAPTADA -->
 <div class="filter-bar mb-4">
-    <form action="historial_sap.php" method="GET" class="row g-3 align-items-end">
+    <form action="solicitudes.php" method="GET" class="row g-3 align-items-end">
         <div class="col-lg-6">
             <label for="q" class="form-label">Buscar por ID o Beneficiario</label>
             <input type="text" class="form-control" name="q" id="q" value="<?php echo htmlspecialchars($filtro_q); ?>">
@@ -179,5 +179,7 @@ require_once 'templates/layouts/header.php';
   </ul>
 </nav>
 <?php endif; ?>
+
+
 
 <?php require_once 'templates/layouts/footer.php'; ?>

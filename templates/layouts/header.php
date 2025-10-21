@@ -50,22 +50,24 @@ $pagina_actual = basename($_SERVER['PHP_SELF']);
 
                 <!-- ENLACE PARA PROCESAMIENTO DE PAGOS -->
                 <?php if ($_SESSION['rol'] === 'usuario' || es_admin()): ?> 
-                    <a href="pagos.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'pagos.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Pagos Pendientes">
+                    <!-- <a href="pagos.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'pagos.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Pagos Pendientes">
                         <i class="bi bi-cash-stack"></i><span class="sidebar-link-text">Pagos Pendientes</span>
-                    </a>
+                    </a> -->
                     <a href="crear_pago_sap.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'crear_pago_sap.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Pago a SAP">
                     <i class="bi bi-send-check-fill"></i><span class="sidebar-link-text">Registrar Pago SAP</span>
                     </a>
                 <?php endif; ?>
-                <a href="nueva_solicitud.php" class="list-group-item list-group-item-action <?php echo in_array($pagina_actual, ['nueva_solicitud.php', 'crear_solicitud.php']) ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Nueva Solicitud">
+                <!-- <a href="nueva_solicitud.php" class="list-group-item list-group-item-action <?php echo in_array($pagina_actual, ['nueva_solicitud.php', 'crear_solicitud.php']) ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Nueva Solicitud">
                     <i class="bi bi-plus-circle"></i><span class="sidebar-link-text">Nueva Solicitud</span>
-                </a>
+                </a> -->
                 <a href="solicitudes.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'solicitudes.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Historial">
                     <i class="bi bi-card-list"></i><span class="sidebar-link-text">Historial</span>
                 </a>
+                <?php if ($_SESSION['rol'] === 'finanzas' || $_SESSION['rol'] === 'gerente_general' || es_admin()): ?>
                 <a href="trazabilidad.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'trazabilidad.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Trazabilidad Global">
                     <i class="bi bi-arrows-fullscreen"></i><span class="sidebar-link-text">Trazabilidad Global</span>
                 </a>
+                <?php endif; ?>
 
                 <?php if (es_admin()): ?>
                     <div class="sidebar-heading-custom"><span class="sidebar-link-text">ADMINISTRACIÓN</span></div>

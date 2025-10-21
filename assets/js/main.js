@@ -345,26 +345,36 @@ function mostrarNotificacion(tipo, titulo, mensaje) {
     });
   
     // --- SECCIÓN 7: GESTIÓN DE USUARIOS ---
+     // 1. Llenar y mostrar el modal de edición al hacer clic en "Editar"
     $(document).on("click", ".btn-editar-usuario", function () {
       var modal = new bootstrap.Modal(
         document.getElementById("modalEditarUsuario")
       );
+
+      // Poblar el formulario con los datos del botón
       $("#usuario_id").val($(this).data("id"));
       $("#nombre_usuario").val($(this).data("nombre"));
       $("#email").val($(this).data("email"));
       $("#rol").val($(this).data("rol"));
       $("#jefe_id").val($(this).data("jefe-id"));
+      $("#departamento_id").val($(this).data("depto-id")); // <-- Línea añadida
+
+      // Limpiar campos de contraseña para evitar cambios accidentales
+      $("#edit_password").val("");
+      $("#edit_confirm_password").val("");
+
       modal.show();
     });
   
+    // 2. Manejar el envío del formulario de edición con SweetAlert y AJAX
     $("#form-editar-usuario").on("submit", function (e) {
-      e.preventDefault();
+      e.preventDefault(); // Prevenir el envío normal del formulario
       var form = $(this);
       var submitButton = form.find('button[type="submit"]');
   
       Swal.fire({
         title: "¿Guardar los cambios?",
-        text: "Se actualizará el rol y/o el supervisor del usuario.",
+        text: "Se actualizarán los datos del usuario. Esta acción no se puede deshacer.",
         icon: "info",
         showCancelButton: true,
         confirmButtonColor: "#0d6efd",
@@ -372,32 +382,50 @@ function mostrarNotificacion(tipo, titulo, mensaje) {
         confirmButtonText: "Sí, guardar",
         cancelButtonText: "Cancelar",
       }).then((result) => {
+        // Si el usuario confirma la acción
         if (result.isConfirmed) {
+          // Deshabilitar el botón y mostrar un spinner
           submitButton
             .prop("disabled", true)
             .html(
-              '<span class="spinner-border spinner-border-sm"></span> Guardando...'
+              '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...'
             );
+
           $.ajax({
             type: "POST",
-            url: "scripts/actualizar_usuario.php",
-            data: form.serialize(),
+            // IMPORTANTE: Asegúrate que esta URL sea correcta.
+            url: "scripts/handle_usuario_update.php", 
+            data: form.serialize(), // Envía todos los datos del formulario
             dataType: "json",
             success: function (response) {
+              // Si el backend devuelve un estado de éxito
               if (response.status === "success") {
-                mostrarNotificacion("success", "¡Éxito!", response.message);
-                setTimeout(() => location.reload(), 1500);
+                // Cierra el modal
+                $('#modalEditarUsuario').modal('hide');
+                // Muestra una notificación de éxito con SweetAlert2
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: response.message,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload(); // Recarga la página para ver los cambios
+                });
               } else {
-                mostrarNotificacion("error", "Error", response.message);
+                // Si el backend devuelve un error (ej. contraseñas no coinciden)
+                Swal.fire('Error', response.message, 'error');
               }
             },
             error: function () {
-              mostrarNotificacion(
-                "error",
-                "Error",
-                "No se pudo conectar con el servidor."
-              );
+              // Si hay un error de conexión con el servidor
+              Swal.fire('Error', 'No se pudo conectar con el servidor. Inténtalo de nuevo.', 'error');
             },
+            complete: function() {
+              // Se ejecuta siempre, al final de la petición (éxito o error)
+              // Volver a habilitar el botón y restaurar su texto
+              submitButton.prop("disabled", false).html("Guardar Cambios");
+            }
           });
         }
       });

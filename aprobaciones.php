@@ -53,7 +53,7 @@ $stmt_pagos->close();
     <p class="text-muted">Procesa las solicitudes aprobadas para su registro final en SAP.</p>
 </div>
 <div class="filter-bar mb-4">
-    <form action="finanzas_sap.php" method="GET" class="row g-3 align-items-end">
+    <form action="aprobaciones.php" method="GET" class="row g-3 align-items-end">
         <div class="col-lg-4"><label class="form-label">Buscar por ID o beneficiario</label><input type="text" class="form-control" name="q" value="<?php echo htmlspecialchars($filtro_q); ?>"></div>
         <div class="col-lg-3"><label class="form-label">Desde Fecha Aprobación</label><input type="date" class="form-control" name="fecha_inicio" value="<?php echo htmlspecialchars($filtro_fecha_inicio); ?>"></div>
         <div class="col-lg-3"><label class="form-label">Hasta Fecha Aprobación</label><input type="date" class="form-control" name="fecha_fin" value="<?php echo htmlspecialchars($filtro_fecha_fin); ?>"></div>
