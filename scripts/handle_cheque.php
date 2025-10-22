@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $rol_aprobador = $rol_aprobador_result ? $rol_aprobador_result->fetch_assoc()['rol'] : null;
 
                     if ($rol_aprobador === 'admin' || $rol_aprobador === 'gerente_general') {
-                        $nuevo_estado = 'Pendiente de Gerente General';
+                        $nuevo_estado = 'Pendiente Gerente General';
                     } else {
                         $nuevo_estado = 'Pendiente de Jefe';
                     }

@@ -36,7 +36,7 @@ $stmt_counts->close();
 
 // Inicializar contadores para evitar errores
 $pendientes_jefe = $counts['Pendiente de Jefe'] ?? 0;
-$pendientes_gerente = $counts['Pendiente de Gerente General'] ?? 0;
+$pendientes_gerente = $counts['Pendiente Gerente General'] ?? 0;
 $aprobados = $counts['Aprobado'] ?? 0;
 $procesados = $counts['ProcesadoSAP'] ?? 0;
 $rechazados = $counts['Rechazado'] ?? 0;
@@ -91,7 +91,7 @@ $stmt_solicitudes->close();
 <ul class="nav nav-pills mb-4 status-filter-nav">
     <li class="nav-item"><a class="nav-link <?php echo empty($filtro_estado) ? 'active' : ''; ?>" href="trazabilidad.php">Todos (<?php echo $total_solicitudes; ?>)</a></li>
     <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Pendiente de Jefe') ? 'active' : ''; ?>" href="?filtro=Pendiente de Jefe">Pend. Jefe (<?php echo $pendientes_jefe; ?>)</a></li>
-    <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Pendiente de Gerente General') ? 'active' : ''; ?>" href="?filtro=Pendiente de Gerente General">Pend. Gerente (<?php echo $pendientes_gerente; ?>)</a></li>
+    <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Pendiente Gerente General') ? 'active' : ''; ?>" href="?filtro=Pendiente Gerente General">Pend. Gerente (<?php echo $pendientes_gerente; ?>)</a></li>
     <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Aprobado') ? 'active' : ''; ?>" href="?filtro=Aprobado">Aprobadas (<?php echo $aprobados; ?>)</a></li>
     <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'ProcesadoSAP') ? 'active' : ''; ?>" href="?filtro=ProcesadoSAP">Procesado SAP (<?php echo $procesados; ?>)</a></li>
     <li class="nav-item"><a class="nav-link <?php echo ($filtro_estado == 'Rechazado') ? 'active' : ''; ?>" href="?filtro=Rechazado">Rechazadas (<?php echo $rechazados; ?>)</a></li>
@@ -105,7 +105,7 @@ $stmt_solicitudes->close();
             // Mapeo de estados a colores e iconos
             $estado_info = [
                 'Pendiente de Jefe' => ['icon' => 'bi-person-check', 'color' => 'warning'],
-                'Pendiente de Gerente General' => ['icon' => 'bi-person-video3', 'color' => 'warning'],
+                'Pendiente Gerente General' => ['icon' => 'bi-person-video3', 'color' => 'warning'],
                 'Aprobado' => ['icon' => 'bi-check-lg', 'color' => 'primary'],
                 'ProcesadoSAP' => ['icon' => 'bi-check-circle-fill', 'color' => 'success'],
                 'Rechazado' => ['icon' => 'bi-x-circle-fill', 'color' => 'danger'],

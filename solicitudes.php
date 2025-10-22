@@ -97,7 +97,7 @@ require_once 'templates/layouts/header.php';
             <select name="estado" id="estado" class="form-select">
                 <option value="">Todos los estados</option>
                 <option value="Pendiente de Jefe" <?php echo ($filtro_estado == 'Pendiente de Jefe') ? 'selected' : ''; ?>>Pendiente de Jefe</option>
-                <option value="Pendiente de Gerente General" <?php echo ($filtro_estado == 'Pendiente de Gerente General') ? 'selected' : ''; ?>>Pendiente de Gerente</option>
+                <option value="Pendiente Gerente General" <?php echo ($filtro_estado == 'Pendiente Gerente General') ? 'selected' : ''; ?>>Pendiente de Gerente</option>
                 <option value="Aprobado" <?php echo ($filtro_estado == 'Aprobado') ? 'selected' : ''; ?>>Aprobado (Listo para Finanzas)</option>
                 <option value="ProcesadoSAP" <?php echo ($filtro_estado == 'ProcesadoSAP') ? 'selected' : ''; ?>>Procesado en SAP</option>
                 <option value="Rechazado" <?php echo ($filtro_estado == 'Rechazado') ? 'selected' : ''; ?>>Rechazado</option>
@@ -118,7 +118,7 @@ require_once 'templates/layouts/header.php';
                 // Mapeo de estados a clases de Bootstrap para los badges
                 $estado_info = [
                     'Pendiente de Jefe' => ['class' => 'text-bg-warning', 'icon' => 'bi-hourglass-split'],
-                    'Pendiente de Gerente General' => ['class' => 'text-bg-warning', 'icon' => 'bi-hourglass-top'],
+                    'Pendiente Gerente General' => ['class' => 'text-bg-warning', 'icon' => 'bi-hourglass-top'],
                     'Aprobado' => ['class' => 'text-bg-primary', 'icon' => 'bi-check-lg'],
                     'ProcesadoSAP' => ['class' => 'text-bg-success', 'icon' => 'bi-check-circle-fill'],
                     'Rechazado' => ['class' => 'text-bg-danger', 'icon' => 'bi-x-circle-fill'],

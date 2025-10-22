@@ -49,7 +49,7 @@ $pagina_actual = basename($_SERVER['PHP_SELF']);
 
 
                 <!-- ENLACE PARA PROCESAMIENTO DE PAGOS -->
-                <?php if ($_SESSION['rol'] === 'usuario' || es_admin()): ?> 
+                <?php if ($_SESSION['rol'] === 'usuario' || es_admin() || es_finanzas()): ?> 
                     <!-- <a href="pagos.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'pagos.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Pagos Pendientes">
                         <i class="bi bi-cash-stack"></i><span class="sidebar-link-text">Pagos Pendientes</span>
                     </a> -->

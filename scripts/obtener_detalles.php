@@ -88,7 +88,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             // 4. Lógica para el color del badge de estado
             $estado_class = 'text-bg-secondary';
             switch ($solicitud['estado']) {
-                case 'Pendiente': case 'Pendiente de Jefe': case 'Pendiente de Gerente General':
+                case 'Pendiente': case 'Pendiente de Jefe': case 'Pendiente Gerente General':
                     $estado_class = 'text-bg-warning'; break;
                 case 'Aprobado': $estado_class = 'text-bg-success'; break;
                 case 'Pagado': $estado_class = 'text-bg-info'; break;
@@ -148,7 +148,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                         // Determinar la acción realizada
                         $accion_realizada = "";
                         switch ($solicitud['estado']) {
-                            case 'Pendiente de Gerente General':
+                            case 'Pendiente Gerente General':
                                 $accion_realizada = "escaló para aprobación final";
                                 break;
                             case 'Aprobado':

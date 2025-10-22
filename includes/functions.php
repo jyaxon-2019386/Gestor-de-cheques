@@ -40,7 +40,7 @@ function puede_aprobar() {
         return false;
     }
     // Añadimos 'finanzas' a la lista de roles con poder de decisión.
-    $roles_aprobadores = ['admin', 'gerente_general', 'gerente', 'jefe_de_area'];
+    $roles_aprobadores = ['admin', 'gerente_general', 'gerente', 'jefe_de_area', 'gerente_bodega'];
     return in_array($_SESSION['rol'], $roles_aprobadores);
 }
 

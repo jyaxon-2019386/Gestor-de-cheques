@@ -1,5 +1,5 @@
 <?php
-// Nombre del archivo: scripts/handle_aprobacion_sap.php (VERSIÓN CORREGIDA Y FINAL)
+// Nombre del archivo: scripts/handle_aprobacion_sap.php (ACTUALIZADO CON EL NUEVO MONTO DE 25,000)
 
 require_once '../includes/functions.php';
 proteger_pagina();
@@ -17,11 +17,10 @@ try {
         throw new Exception("Datos incompletos.");
     }
     
-    // Lógica de Rechazo (Sin cambios)
+    // Lógica para el Rechazo (sin cambios)
     if ($accion === 'Rechazado') {
-        // ... (Tu lógica de rechazo es correcta y se mantiene)
         if (empty($motivo_rechazo)) throw new Exception("El motivo de rechazo es obligatorio.");
-        $stmt = $conexion->prepare("UPDATE pagos_pendientes SET estado = 'Rechazado', motivo_rechazo = ? WHERE id = ?");
+        $stmt = $conexion->prepare("UPDATE pagos_pendientes SET estado = 'Rechazado', motivo_rechazo = ?, aprobador_actual_id = NULL WHERE id = ?");
         $stmt->bind_param('si', $motivo_rechazo, $solicitud_id);
         if ($stmt->execute()) {
             echo json_encode(['status' => 'success', 'message' => 'Solicitud rechazada correctamente.']);
@@ -30,12 +29,8 @@ try {
     }
     
     if ($accion === 'Aprobado') {
-        // 2. OBTENER DATOS CRÍTICOS DIRECTAMENTE DE LA SOLICITUD
-        // CORREGIDO: Se elimina el JOIN y se lee de la propia tabla 'pagos_pendientes'
-        $sql_info = "SELECT total_pagar, departamento_id 
-                     FROM pagos_pendientes 
-                     WHERE id = ?";
-        $stmt_info = $conexion->prepare($sql_info);
+        // 2. OBTENER DATOS CRÍTICOS DE LA SOLICITUD
+        $stmt_info = $conexion->prepare("SELECT departamento_id, total_pagar FROM pagos_pendientes WHERE id = ?");
         $stmt_info->bind_param('i', $solicitud_id);
         $stmt_info->execute();
         $resultado_info = $stmt_info->get_result()->fetch_assoc();
@@ -45,49 +40,84 @@ try {
             throw new Exception("No se encontró la solicitud.");
         }
 
-        $total_pagar = $resultado_info['total_pagar'];
         $departamento_id_solicitud = $resultado_info['departamento_id'];
+        $total_pagar = (float)$resultado_info['total_pagar'];
 
-        // 3. DETERMINAR EL SIGUIENTE ESTADO BASADO EN LAS REGLAS
+        // ==========================================================================================
+        // INICIO: LÓGICA DE FLUJO ACTUALIZADA
+        // ==========================================================================================
         $rol_aprobador = $_SESSION['rol'];
         $next_estado = '';
+        $next_aprobador_id = null;
+        $es_aprobacion_final = false;
 
         switch ($rol_aprobador) {
             case 'jefe_de_area':
-            case 'gerente':
-                // Regla para el departamento de Logística (ID 13)
                 if ($departamento_id_solicitud == 13) {
-                    $next_estado = 'Pendiente de Gerente';
-                    if ($rol_aprobador == 'gerente') {
-                        $next_estado = 'Pendiente de Gerente General';
-                    }
+                    // Flujo de Logística (sin cambios)
+                    $next_estado = 'Pendiente Gerente Bodega';
+                    $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_bodega' LIMIT 1");
                 } else {
-                    // Reglas para TODOS LOS DEMÁS departamentos
-                    if ($total_pagar > 20000) {
-                        $next_estado = 'Pendiente de Gerente General';
+                    // ===== INICIO DEL CAMBIO SOLICITADO =====
+                    // Para otros departamentos, el monto para ir a Gerente General ahora es 25,000
+                    if ($total_pagar >= 25000) {
+                        $next_estado = 'Pendiente Gerente General';
+                        $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_general' LIMIT 1");
                     } else {
-                        // Para montos de 20,000 o menos, va directo a Finanzas
                         $next_estado = 'Aprobado';
+                        $es_aprobacion_final = true;
                     }
+                    // ===== FIN DEL CAMBIO SOLICITADO =====
+                }
+                
+                if (!$es_aprobacion_final) {
+                    $stmt_next->execute();
+                    $next_user = $stmt_next->get_result()->fetch_assoc();
+                    if (!$next_user) throw new Exception("No se encontró al siguiente aprobador en la cadena.");
+                    $next_aprobador_id = $next_user['id'];
+                    $stmt_next->close();
+                }
+                break;
+            
+            case 'gerente':
+                throw new Exception("Tu rol de 'Gerente' no tiene un paso de aprobación definido en este flujo.");
+                break;
+
+            case 'gerente_bodega':
+                // Flujo de Logística (sin cambios)
+                if ($total_pagar >= 20000) {
+                    $next_estado = 'Pendiente Gerente General';
+                    $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_general' LIMIT 1");
+                    $stmt_next->execute();
+                    $next_user = $stmt_next->get_result()->fetch_assoc();
+                    if (!$next_user) throw new Exception("No se encontró al Gerente General en el sistema.");
+                    $next_aprobador_id = $next_user['id'];
+                    $stmt_next->close();
+                } else {
+                    $next_estado = 'Aprobado';
+                    $es_aprobacion_final = true;
                 }
                 break;
 
             case 'gerente_general':
-                // La aprobación del Gerente General siempre es el último paso antes de Finanzas.
                 $next_estado = 'Aprobado';
+                $es_aprobacion_final = true;
                 break;
             
             default:
                 throw new Exception("Tu rol no está autorizado para aprobar solicitudes.");
         }
 
-        if (empty($next_estado)) {
-            throw new Exception("No se pudo determinar el siguiente estado de la solicitud.");
-        }
+        if (empty($next_estado)) throw new Exception("No se pudo determinar el siguiente estado de la solicitud.");
         
-        // 4. ACTUALIZAR LA SOLICITUD
-        $stmt_update = $conexion->prepare("UPDATE pagos_pendientes SET estado = ? WHERE id = ?");
-        $stmt_update->bind_param('si', $next_estado, $solicitud_id);
+        // 4. ACTUALIZAR LA SOLICITUD EN LA BASE DE DATOS
+        if ($es_aprobacion_final) {
+            $stmt_update = $conexion->prepare("UPDATE pagos_pendientes SET estado = ?, aprobador_actual_id = NULL, fecha_aprobacion = NOW() WHERE id = ?");
+            $stmt_update->bind_param('si', $next_estado, $solicitud_id);
+        } else {
+            $stmt_update = $conexion->prepare("UPDATE pagos_pendientes SET estado = ?, aprobador_actual_id = ? WHERE id = ?");
+            $stmt_update->bind_param('sii', $next_estado, $next_aprobador_id, $solicitud_id);
+        }
         
         if ($stmt_update->execute()) {
             echo json_encode(['status' => 'success', 'message' => 'Solicitud aprobada y enviada al siguiente nivel.']);

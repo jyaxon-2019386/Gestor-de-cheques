@@ -61,13 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && puede_aprobar()) {
                 }
                 
                 if ($siguiente_aprobador_id) {
-                    $estado_final = 'Pendiente de Gerente General';
+                    $estado_final = 'Pendiente Gerente General';
                 } else {
                     throw new Exception("Flujo bloqueado: No se encontró un Gerente o Admin para la aprobación final.");
                 }
 
             } 
-            // Si la aprobación viene de un 'Pendiente de Gerente General' o de cualquier otro caso...
+            // Si la aprobación viene de un 'Pendiente Gerente General' o de cualquier otro caso...
             else {
                 // ...esta es la APROBACIÓN FINAL. Pasa a Finanzas.
                 $estado_final = 'Aprobado';

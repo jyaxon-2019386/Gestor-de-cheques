@@ -20,7 +20,7 @@ ORDER BY u.nombre_usuario ASC";
 $lista_usuarios = $conexion->query($sql_usuarios);
 
 // Obtener la lista de posibles jefes para el dropdown
-$sql_jefes = "SELECT id, nombre_usuario FROM usuarios WHERE rol IN ('jefe_de_area', 'gerente', 'gerente_general', 'admin')";
+$sql_jefes = "SELECT id, nombre_usuario FROM usuarios WHERE rol IN ('jefe_de_area', 'gerente', 'gerente_general', 'admin', 'gerente_bodega', 'proveeduria')";
 // CORREGIDO:
 $jefes_array = $conexion->query($sql_jefes)->fetch_all(MYSQLI_ASSOC);
 
@@ -59,9 +59,11 @@ $deptos_array = $conexion->query($sql_deptos)->fetch_all(MYSQLI_ASSOC);
                     case 'admin':
                         $rol_class = 'text-bg-danger'; break;
                     case 'gerente_general':
-                        $rol_class = 'text-bg-warning'; break; // Amarillo/Dorado para el GM
+                        $rol_class = 'text-bg-warning'; break;
                     case 'gerente':
                         $rol_class = 'text-bg-info'; break;
+                    case 'gerente_bodega':
+                        $rol_class = 'text-bg-warning'; break;
                     case 'jefe_de_area':
                         $rol_class = 'text-bg-primary'; break;
                     case 'finanzas':
@@ -141,6 +143,7 @@ $deptos_array = $conexion->query($sql_deptos)->fetch_all(MYSQLI_ASSOC);
                     <option value="usuario">Usuario Estándar</option>
                     <option value="jefe_de_area">Jefe de Área</option>
                     <option value="gerente">Gerente</option>
+                    <option value="gerente_bodega">Gerente de Bodega</option>
                     <option value="gerente_general">Gerente General</option>
                     <option value="finanzas">Finanzas</option>
                     <option value="proveeduria">Proveeduría</option>
