@@ -31,15 +31,6 @@ if (empty($_SESSION['company_db'])) {
     header('Location: seleccionar_empresa.php');
     exit();
 }
-// ===============================================================================
-// FIN: LÓGICA DE GESTIÓN DE EMPRESA SAP
-// ===============================================================================
-
-
-// Solo usuarios de finanzas o admins pueden acceder
-if (!in_array($_SESSION['rol'], ['usuario', 'admin', 'finanzas'])) {
-    die("Acceso denegado. No tienes permiso para acceder a esta página.");
-}
 
 require_once 'templates/layouts/header.php';
 ?>

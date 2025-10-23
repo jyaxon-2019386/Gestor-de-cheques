@@ -8,7 +8,7 @@ require_once 'config/database.php';
 // --- LÓGICA DE DATOS DEL DASHBOARD ---
 
 $usuario_id_actual = $_SESSION['usuario_id'];
-$es_admin_o_finanzas = es_admin() || es_finanzas(); // Simplificamos la comprobación de roles
+$es_admin_o_finanzas = es_admin() || es_finanzas() ; // Simplificamos la comprobación de roles
 
 // 1. Contadores para las tarjetas de estadísticas (KPI Cards)
 // Agrupamos todos los estados 'Pendiente de...' en un solo contador.

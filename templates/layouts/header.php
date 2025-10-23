@@ -49,14 +49,9 @@ $pagina_actual = basename($_SERVER['PHP_SELF']);
 
 
                 <!-- ENLACE PARA PROCESAMIENTO DE PAGOS -->
-                <?php if ($_SESSION['rol'] === 'usuario' || es_admin() || es_finanzas()): ?> 
-                    <!-- <a href="pagos.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'pagos.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Pagos Pendientes">
-                        <i class="bi bi-cash-stack"></i><span class="sidebar-link-text">Pagos Pendientes</span>
-                    </a> -->
                     <a href="crear_pago_sap.php" class="list-group-item list-group-item-action <?php echo ($pagina_actual == 'crear_pago_sap.php') ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Pago a SAP">
                     <i class="bi bi-send-check-fill"></i><span class="sidebar-link-text">Registrar Pago SAP</span>
                     </a>
-                <?php endif; ?>
                 <!-- <a href="nueva_solicitud.php" class="list-group-item list-group-item-action <?php echo in_array($pagina_actual, ['nueva_solicitud.php', 'crear_solicitud.php']) ? 'active' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="right" title="Nueva Solicitud">
                     <i class="bi bi-plus-circle"></i><span class="sidebar-link-text">Nueva Solicitud</span>
                 </a> -->

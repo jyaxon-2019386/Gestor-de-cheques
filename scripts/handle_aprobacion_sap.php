@@ -1,6 +1,5 @@
 <?php
-// Nombre del archivo: scripts/handle_aprobacion_sap.php (ACTUALIZADO CON EL NUEVO MONTO DE 25,000)
-
+// Nombre del archivo: scripts/handle_aprobacion_sap.php (AJUSTADO PARA CONSISTENCIA CON LAS NUEVAS REGLAS)
 require_once '../includes/functions.php';
 proteger_pagina();
 
@@ -8,17 +7,15 @@ $conexion = require_once '../config/database.php';
 header('Content-Type: application/json');
 
 try {
-    // 1. Obtener datos de la solicitud AJAX
+    // ... (código inicial sin cambios) ...
     $solicitud_id = filter_input(INPUT_POST, 'solicitud_id', FILTER_VALIDATE_INT);
     $accion = $_POST['accion'] ?? '';
     $motivo_rechazo = $_POST['motivo'] ?? NULL;
 
-    if (!$solicitud_id || empty($accion)) {
-        throw new Exception("Datos incompletos.");
-    }
+    if (!$solicitud_id || empty($accion)) throw new Exception("Datos incompletos.");
     
-    // Lógica para el Rechazo (sin cambios)
     if ($accion === 'Rechazado') {
+        // ... (sin cambios aquí) ...
         if (empty($motivo_rechazo)) throw new Exception("El motivo de rechazo es obligatorio.");
         $stmt = $conexion->prepare("UPDATE pagos_pendientes SET estado = 'Rechazado', motivo_rechazo = ?, aprobador_actual_id = NULL WHERE id = ?");
         $stmt->bind_param('si', $motivo_rechazo, $solicitud_id);
@@ -29,23 +26,17 @@ try {
     }
     
     if ($accion === 'Aprobado') {
-        // 2. OBTENER DATOS CRÍTICOS DE LA SOLICITUD
         $stmt_info = $conexion->prepare("SELECT departamento_id, total_pagar FROM pagos_pendientes WHERE id = ?");
         $stmt_info->bind_param('i', $solicitud_id);
         $stmt_info->execute();
         $resultado_info = $stmt_info->get_result()->fetch_assoc();
         $stmt_info->close();
 
-        if (!$resultado_info) {
-            throw new Exception("No se encontró la solicitud.");
-        }
+        if (!$resultado_info) throw new Exception("No se encontró la solicitud.");
 
         $departamento_id_solicitud = $resultado_info['departamento_id'];
         $total_pagar = (float)$resultado_info['total_pagar'];
 
-        // ==========================================================================================
-        // INICIO: LÓGICA DE FLUJO ACTUALIZADA
-        // ==========================================================================================
         $rol_aprobador = $_SESSION['rol'];
         $next_estado = '';
         $next_aprobador_id = null;
@@ -53,13 +44,11 @@ try {
 
         switch ($rol_aprobador) {
             case 'jefe_de_area':
+                // Este caso ahora solo se activa para solicitudes creadas por usuarios normales
                 if ($departamento_id_solicitud == 13) {
-                    // Flujo de Logística (sin cambios)
                     $next_estado = 'Pendiente Gerente Bodega';
                     $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_bodega' LIMIT 1");
                 } else {
-                    // ===== INICIO DEL CAMBIO SOLICITADO =====
-                    // Para otros departamentos, el monto para ir a Gerente General ahora es 25,000
                     if ($total_pagar >= 25000) {
                         $next_estado = 'Pendiente Gerente General';
                         $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_general' LIMIT 1");
@@ -67,7 +56,6 @@ try {
                         $next_estado = 'Aprobado';
                         $es_aprobacion_final = true;
                     }
-                    // ===== FIN DEL CAMBIO SOLICITADO =====
                 }
                 
                 if (!$es_aprobacion_final) {
@@ -84,8 +72,9 @@ try {
                 break;
 
             case 'gerente_bodega':
-                // Flujo de Logística (sin cambios)
-                if ($total_pagar >= 20000) {
+                // ===== INICIO DEL CAMBIO SOLICITADO =====
+                // Ahora, el monto para escalar a Gerente General es 25,000 para TODOS, incluyendo Logística.
+                if ($total_pagar >= 25000) {
                     $next_estado = 'Pendiente Gerente General';
                     $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_general' LIMIT 1");
                     $stmt_next->execute();
@@ -94,9 +83,11 @@ try {
                     $next_aprobador_id = $next_user['id'];
                     $stmt_next->close();
                 } else {
+                    // Si es menor a 25,000, va a Finanzas.
                     $next_estado = 'Aprobado';
                     $es_aprobacion_final = true;
                 }
+                // ===== FIN DEL CAMBIO SOLICITADO =====
                 break;
 
             case 'gerente_general':
@@ -111,6 +102,7 @@ try {
         if (empty($next_estado)) throw new Exception("No se pudo determinar el siguiente estado de la solicitud.");
         
         // 4. ACTUALIZAR LA SOLICITUD EN LA BASE DE DATOS
+        // ... (código de actualización sin cambios) ...
         if ($es_aprobacion_final) {
             $stmt_update = $conexion->prepare("UPDATE pagos_pendientes SET estado = ?, aprobador_actual_id = NULL, fecha_aprobacion = NOW() WHERE id = ?");
             $stmt_update->bind_param('si', $next_estado, $solicitud_id);
