@@ -26,9 +26,7 @@ $response = ['status' => 'error', 'message' => 'No se pudieron obtener las cuent
 $sap = new SapServiceLayer();
 
 try {
-    // ===============================================================================
-    // INICIO DE LA MODIFICACIÓN: Mapa de nombres de bancos por empresa
-    // ===============================================================================
+    // Mapa de nombres de bancos por empresa
     $bank_name_map = [
         'TEST_UNHESA_ZZZ' => [
             '_SYS00000000010' => 'Banco Agromercantil',
@@ -45,11 +43,19 @@ try {
             '_SYS00000000014' => 'Banco G&T Continental',
             '_SYS00000000013' => 'Banco Industrial',
             '_SYS00000000015' => 'Banco Promerica',
-            '_SYS00000000018' => 'Banco Promerica',
+            '_SYS00000000018' => 'Banco Promerica (Dólares)',
         ]
     ];
+
     // ===============================================================================
-    // FIN DEL MAPA
+    // INICIO DE LA MODIFICACIÓN: Mapa de cuentas en USD
+    // ===============================================================================
+    $usd_accounts_map = [
+        'TEST_PROQUIMA_ZZZ' => ['_SYS00000000018'],
+        'TEST_UNHESA_ZZZ'   => ['_SYS00000005130']
+    ];
+    // ===============================================================================
+    // FIN DEL MAPA DE USD
     // ===============================================================================
 
     $sap->login();
@@ -74,13 +80,20 @@ try {
             // Si se encuentra un nombre personalizado, se usa. Si no, se usa el de SAP como respaldo.
             $display_name = $custom_bank_name ? 
                 $custom_bank_name . ' # ' . $account_num : 
-                $account['AccountName']; // Fallback al nombre original de SAP
+                $account['AccountName'];
+
+            // Determinar la moneda de la cuenta
+            $currency = 'QTZ'; // Moneda por defecto
+            if (isset($usd_accounts_map[$current_company]) && in_array($gl_account, $usd_accounts_map[$current_company])) {
+                $currency = 'USD';
+            }
 
             $formatted_accounts[] = [
                 "GLAccount"   => $gl_account,
                 "AccNo"       => $account_num,
                 "BankCode"    => $account['BankCode'],
-                "AccountName" => $display_name // Se usa el nombre formateado y mapeado
+                "AccountName" => $display_name,
+                "Currency"    => $currency // Se añade la moneda al resultado
             ];
         }
 
