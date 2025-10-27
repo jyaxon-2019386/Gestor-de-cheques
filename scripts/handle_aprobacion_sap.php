@@ -1,5 +1,4 @@
 <?php
-// Nombre del archivo: scripts/handle_aprobacion_sap.php (AJUSTADO PARA CONSISTENCIA CON LAS NUEVAS REGLAS)
 require_once '../includes/functions.php';
 proteger_pagina();
 
@@ -7,7 +6,6 @@ $conexion = require_once '../config/database.php';
 header('Content-Type: application/json');
 
 try {
-    // ... (código inicial sin cambios) ...
     $solicitud_id = filter_input(INPUT_POST, 'solicitud_id', FILTER_VALIDATE_INT);
     $accion = $_POST['accion'] ?? '';
     $motivo_rechazo = $_POST['motivo'] ?? NULL;
@@ -15,7 +13,6 @@ try {
     if (!$solicitud_id || empty($accion)) throw new Exception("Datos incompletos.");
     
     if ($accion === 'Rechazado') {
-        // ... (sin cambios aquí) ...
         if (empty($motivo_rechazo)) throw new Exception("El motivo de rechazo es obligatorio.");
         $stmt = $conexion->prepare("UPDATE pagos_pendientes SET estado = 'Rechazado', motivo_rechazo = ?, aprobador_actual_id = NULL WHERE id = ?");
         $stmt->bind_param('si', $motivo_rechazo, $solicitud_id);
@@ -44,11 +41,11 @@ try {
 
         switch ($rol_aprobador) {
             case 'jefe_de_area':
-                // Este caso ahora solo se activa para solicitudes creadas por usuarios normales
-                if ($departamento_id_solicitud == 13) {
+                // Esta lógica se mantiene sin cambios.
+                if ($departamento_id_solicitud == 13) { // Logística
                     $next_estado = 'Pendiente Gerente Bodega';
                     $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_bodega' LIMIT 1");
-                } else {
+                } else { // Otros departamentos
                     if ($total_pagar >= 25000) {
                         $next_estado = 'Pendiente Gerente General';
                         $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_general' LIMIT 1");
@@ -68,13 +65,13 @@ try {
                 break;
             
             case 'gerente':
+                // Rol sin paso de aprobación definido.
                 throw new Exception("Tu rol de 'Gerente' no tiene un paso de aprobación definido en este flujo.");
                 break;
 
             case 'gerente_bodega':
-                // ===== INICIO DEL CAMBIO SOLICITADO =====
-                // Ahora, el monto para escalar a Gerente General es 25,000 para TODOS, incluyendo Logística.
-                if ($total_pagar >= 25000) {
+                // LÓGICA CLAVE: Se aplica el límite de 20,000 para solicitudes de Logística.
+                if ($total_pagar >= 20000) {
                     $next_estado = 'Pendiente Gerente General';
                     $stmt_next = $conexion->prepare("SELECT id FROM usuarios WHERE rol = 'gerente_general' LIMIT 1");
                     $stmt_next->execute();
@@ -83,14 +80,14 @@ try {
                     $next_aprobador_id = $next_user['id'];
                     $stmt_next->close();
                 } else {
-                    // Si es menor a 25,000, va a Finanzas.
+                    // Si es menor a 20,000, es la aprobación final y va a Finanzas.
                     $next_estado = 'Aprobado';
                     $es_aprobacion_final = true;
                 }
-                // ===== FIN DEL CAMBIO SOLICITADO =====
                 break;
 
             case 'gerente_general':
+                // Gerente General siempre es la aprobación final.
                 $next_estado = 'Aprobado';
                 $es_aprobacion_final = true;
                 break;
@@ -101,8 +98,6 @@ try {
 
         if (empty($next_estado)) throw new Exception("No se pudo determinar el siguiente estado de la solicitud.");
         
-        // 4. ACTUALIZAR LA SOLICITUD EN LA BASE DE DATOS
-        // ... (código de actualización sin cambios) ...
         if ($es_aprobacion_final) {
             $stmt_update = $conexion->prepare("UPDATE pagos_pendientes SET estado = ?, aprobador_actual_id = NULL, fecha_aprobacion = NOW() WHERE id = ?");
             $stmt_update->bind_param('si', $next_estado, $solicitud_id);
@@ -112,7 +107,8 @@ try {
         }
         
         if ($stmt_update->execute()) {
-            echo json_encode(['status' => 'success', 'message' => 'Solicitud aprobada y enviada al siguiente nivel.']);
+            $message = $es_aprobacion_final ? 'Solicitud aprobada y enviada a Finanzas.' : 'Solicitud aprobada y enviada al siguiente nivel.';
+            echo json_encode(['status' => 'success', 'message' => $message]);
         } else {
             throw new Exception("Error al actualizar la solicitud.");
         }

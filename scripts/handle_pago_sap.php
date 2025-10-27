@@ -1,5 +1,4 @@
 <?php
-// Nombre del archivo: scripts/handle_pago_sap.php (CORREGIDO - COMBINA LÓGICA DE JEFATURA Y SUPERVISOR)
 ini_set("display_errors", 1);
 error_reporting(E_ALL);
 
@@ -52,26 +51,48 @@ try {
         $total_pagar += parse_final_amount($monto_str);
     }
 
-    // ==========================================================================================
-    // INICIO: LÓGICA DE FLUJO CORREGIDA
-    // ==========================================================================================
+    // 3. DEFINIR FLUJO DE APROBACIÓN
     $estado_final = '';
     $aprobador_final_id = null;
     $fecha_aprobacion = null;
+    $roles_jefatura = ['jefe_de_area', 'gerente', 'gerente_bodega', 'gerente_general'];
 
-    // REGLA 1: Verificar si una jefatura está creando una solicitud de bajo monto.
-    if (in_array($rol_creador, ['jefe_de_area', 'gerente', 'gerente_bodega']) && $total_pagar < 25000) {
-        // Si se cumple, es una auto-aprobación y va directo a Finanzas.
-        $estado_final = 'Aprobado';
-        $aprobador_final_id = null;
-        $fecha_aprobacion = date('Y-m-d H:i:s');
+    // REGLA 1: Flujo para JEFATURAS.
+    if (in_array($rol_creador, $roles_jefatura)) {
+        if ($total_pagar < 25000) {
+            // Monto bajo: Auto-aprobación, directo a Finanzas.
+            $estado_final = 'Aprobado';
+            $fecha_aprobacion = date('Y-m-d H:i:s');
+        } else {
+            // Monto alto: Escala al supervisor de la jefatura.
+            goto logica_supervisor_general;
+        }
     } else {
-        // REGLA 2 (CASO GENERAL): Para todos los demás casos, usar la lógica del supervisor.
-        // Esto aplica a usuarios normales, o a jefaturas con montos >= 25,000.
+        // REGLA 2: Flujo para USUARIOS NORMALES (NO JEFATURAS).
         
+        // REGLA 2.1: Flujo para departamentos DISTINTOS a Logística (ID 13).
+        if ($departamento_id != 13) {
+            if ($total_pagar < 5000) {
+                // Monto bajo: Aprobación directa, va a Finanzas.
+                $estado_final = 'Aprobado';
+                $fecha_aprobacion = date('Y-m-d H:i:s');
+            } else {
+                // Monto alto: Requiere aprobación del Supervisor Directo.
+                goto logica_supervisor_general;
+            }
+        } else {
+            // REGLA 2.2: Flujo para usuarios de Logística (ID 13).
+            // Cualquier monto siempre va al supervisor directo.
+            goto logica_supervisor_general;
+        }
+    }
+
+logica_supervisor_general:
+    // Esta sección se ejecuta para todos los casos que requieren ir a un supervisor.
+    if (empty($estado_final)) {
         $primer_aprobador_id = $usuario_data['jefe_id'] ?? null;
         if (!$primer_aprobador_id) {
-            throw new Exception("No puedes crear esta solicitud porque no tienes un supervisor asignado para el siguiente nivel de aprobación.");
+            throw new Exception("No puedes crear esta solicitud porque no tienes un supervisor asignado.");
         }
 
         $stmt_jefe = $conexion->prepare("SELECT rol FROM usuarios WHERE id = ?");
@@ -80,34 +101,18 @@ try {
         $jefe_data = $stmt_jefe->get_result()->fetch_assoc();
         $stmt_jefe->close();
 
-        if (!$jefe_data) {
-            throw new Exception("El supervisor asignado (ID: {$primer_aprobador_id}) no fue encontrado.");
-        }
-        $rol_del_jefe = $jefe_data['rol'];
-
-        switch ($rol_del_jefe) {
-            case 'jefe_de_area':
-                $estado_final = 'Pendiente de Jefe';
-                break;
-            case 'gerente_bodega':
-                $estado_final = 'Pendiente Gerente Bodega';
-                break;
-            case 'gerente_general':
-                $estado_final = 'Pendiente Gerente General';
-                break;
-            case 'gerente':
-                $estado_final = 'Pendiente de Gerente';
-                break;
-            default:
-                $estado_final = 'Pendiente de Aprobación';
-        }
+        if (!$jefe_data) throw new Exception("El supervisor asignado (ID: {$primer_aprobador_id}) no fue encontrado.");
         
+        $rol_del_jefe = $jefe_data['rol'];
+        switch ($rol_del_jefe) {
+            case 'jefe_de_area': $estado_final = 'Pendiente de Jefe'; break;
+            case 'gerente_bodega': $estado_final = 'Pendiente Gerente Bodega'; break;
+            case 'gerente_general': $estado_final = 'Pendiente Gerente General'; break;
+            case 'gerente': $estado_final = 'Pendiente de Gerente'; break;
+            default: $estado_final = 'Pendiente de Aprobación';
+        }
         $aprobador_final_id = $primer_aprobador_id;
     }
-    // ========================================================================================
-    // FIN: LÓGICA DE FLUJO
-    // ========================================================================================
-
     // 4. INSERTAR EL PAGO PENDIENTE (el resto del script es igual)
     $sql_pago = "INSERT INTO pagos_pendientes (usuario_id, departamento_id, empresa_db, departamento_solicitante, estado, aprobador_actual_id, fecha_aprobacion, DocDate, DocCurrency, total_pagar, CardName, Remarks, JournalRemarks, CheckAccount, creado_por_usuario) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt_pago = $conexion->prepare($sql_pago);
