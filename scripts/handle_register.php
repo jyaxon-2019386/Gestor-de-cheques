@@ -1,10 +1,14 @@
 <?php
-// scripts/handle_register.php - VERSIÓN FINAL CON MANEJO DE EXCEPCIONES
+// scripts/handle_register.php - VERSIÓN CON NOMBRES Y APELLIDOS
 require_once '../config/database.php';
 require_once '../includes/functions.php';
 
-// Establecer mysqli para que lance excepciones en lugar de warnings
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+// --- INICIO DE LA MODIFICACIÓN: Capturar nuevos campos ---
+$nombres = $_POST['nombres'] ?? null;
+$apellidos = $_POST['apellidos'] ?? null;
+// --- FIN DE LA MODIFICACIÓN ---
 
 $nombre_usuario = $_POST['nombre_usuario'] ?? null;
 $email = $_POST['email'] ?? null;
@@ -16,11 +20,12 @@ $status = 'error';
 $message = 'Ocurrió un error inesperado.';
 $has_error = false;
 
-// Validaciones del servidor
-if (empty($nombre_usuario) || empty($email) || empty($password) || empty($confirm_password)) {
+// --- INICIO DE LA MODIFICACIÓN: Actualizar validaciones ---
+if (empty($nombres) || empty($apellidos) || empty($nombre_usuario) || empty($email) || empty($password) || empty($confirm_password)) {
     $message = "Por favor, completa todos los campos obligatorios.";
     $has_error = true;
 } 
+// --- FIN DE LA MODIFICACIÓN ---
 elseif (preg_match('/\s/', $nombre_usuario)) {
     $message = "El nombre de usuario no puede contener espacios.";
     $has_error = true;
@@ -35,8 +40,17 @@ elseif ($password !== $confirm_password) {
 } else {
     try {
         $password_hashed = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $conexion->prepare("INSERT INTO usuarios (nombre_usuario, email, departamento_id, password) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssis", $nombre_usuario, $email, $departamento_id, $password_hashed);
+
+        // --- INICIO DE LA MODIFICACIÓN: Combinar nombres y actualizar consulta ---
+        $nombre_completo = trim($nombres) . ' ' . trim($apellidos);
+
+        // Se agrega la nueva columna 'nombres' a la consulta
+        $stmt = $conexion->prepare("INSERT INTO usuarios (nombres, nombre_usuario, email, departamento_id, password) VALUES (?, ?, ?, ?, ?)");
+        
+        // Se actualiza el bind_param: se añade una 's' al principio y la variable $nombre_completo
+        $stmt->bind_param("sssis", $nombre_completo, $nombre_usuario, $email, $departamento_id, $password_hashed);
+        // --- FIN DE LA MODIFICACIÓN ---
+
         $stmt->execute();
         
         $status = 'success';
@@ -44,19 +58,16 @@ elseif ($password !== $confirm_password) {
         
     } catch (mysqli_sql_exception $e) {
         $has_error = true;
-        // --- LA CORRECCIÓN CLAVE: ATRAPAR LA EXCEPCIÓN DE DUPLICADO ---
-        if ($e->getCode() == 1062) { // 1062 es el código de error para "Duplicate entry"
+        if ($e->getCode() == 1062) {
              $message = 'El nombre de usuario o el correo electrónico ya están registrados.';
         } else {
-            // Para cualquier otro error de base de datos
             $message = 'Error al crear el usuario en la base de datos.';
-            // Opcional: registrar el error real para depuración
-            // error_log($e->getMessage());
+            // error_log($e->getMessage()); // Descomentar para depuración
         }
     }
 }
 
-// --- LÓGICA DE RESPUESTA INTELIGENTE (SIN CAMBIOS) ---
+// --- LÓGICA DE RESPUESTA  (SIN CAMBIOS) ---
 $is_ajax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 
 if ($is_ajax) {

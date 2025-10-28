@@ -1,18 +1,13 @@
 <?php
-// register.php - REDISEÑO CON FORMULARIO "PEGAJOSO"
-require_once 'includes/functions.php'; // Esto inicia la sesión
+// register.php - VERSIÓN CON CAMPOS DE NOMBRES Y APELLIDOS
+require_once 'includes/functions.php'; 
 if (isset($_SESSION['usuario_id'])) { header('Location: index.php'); exit(); }
 require_once 'config/database.php';
 
-// Obtener lista de departamentos
 $departamentos = $conexion->query("SELECT id, nombre FROM departamentos ORDER BY nombre ASC");
-
-// --- LÓGICA CLAVE: RECUPERAR ERRORES Y DATOS ANTIGUOS DE LA SESIÓN ---
 $error_message = $_SESSION['error_message'] ?? null;
 $form_data = $_SESSION['form_data'] ?? [];
-// Limpiar los datos de la sesión para que no reaparezcan en la siguiente visita
-unset($_SESSION['error_message']);
-unset($_SESSION['form_data']);
+unset($_SESSION['error_message'], $_SESSION['form_data']);
 
 require_once 'templates/layouts/header.php';
 ?>
@@ -26,7 +21,6 @@ require_once 'templates/layouts/header.php';
         <div class="auth-card">
             <h2 class="mb-4">Crear una Cuenta</h2>
 
-            <!-- MOSTRAR MENSAJE DE ERROR SI EXISTE -->
             <?php if ($error_message): ?>
                 <div class="alert alert-danger" role="alert">
                     <?php echo htmlspecialchars($error_message); ?>
@@ -34,6 +28,26 @@ require_once 'templates/layouts/header.php';
             <?php endif; ?>
 
             <form action="scripts/handle_register.php" method="POST" class="needs-validation" novalidate>
+                
+                <!-- ============================================== -->
+                <!-- INICIO DE LA MODIFICACIÓN: NUEVOS CAMPOS       -->
+                <!-- ============================================== -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="nombres" class="form-label">Nombres</label>
+                        <input type="text" class="form-control form-control-lg" name="nombres" required 
+                               value="<?php echo htmlspecialchars($form_data['nombres'] ?? ''); ?>">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="apellidos" class="form-label">Apellidos</label>
+                        <input type="text" class="form-control form-control-lg" name="apellidos" required 
+                               value="<?php echo htmlspecialchars($form_data['apellidos'] ?? ''); ?>">
+                    </div>
+                </div>
+                <!-- ============================================== -->
+                <!-- FIN DE LA MODIFICACIÓN                         -->
+                <!-- ============================================== -->
+
                 <div class="mb-3">
                     <label for="nombre_usuario" class="form-label">Nombre de Usuario</label>
                     <input type="text" class="form-control form-control-lg" name="nombre_usuario" required 
@@ -76,5 +90,3 @@ require_once 'templates/layouts/header.php';
         </div>
     </div>
 </div>
-
-<?php require_once 'templates/layouts/footer.php'; ?>

@@ -66,10 +66,7 @@ try {
     $sap->login();
 
     if (!empty($pago['CheckAccount'])) {
-        // ==========================================================
-        // INICIO DE LA CORRECCIÓN
-        // ==========================================================
-        // 1. Pedimos a SAP el campo correcto: AccNo
+      
         $all_bank_accounts_raw = $sap->get("HouseBankAccounts?\$select=GLAccount,BankCode,AccNo");
         
         $bank_details = null;
@@ -88,7 +85,6 @@ try {
                 "CheckNumber" => 0,
                 "BankCode" => $bank_details['BankCode'],
                 "Branch" => "01",
-                // 2. Leemos desde 'AccNo' y lo asignamos a 'AccounttNum'
                 "AccounttNum" => $bank_details['AccNo'], 
                 "CheckSum" => (float)$pago['total_pagar'],
                 "CheckAccount" => $pago['CheckAccount'],
@@ -99,9 +95,7 @@ try {
         } else {
              throw new Exception("No se encontraron los detalles de la cuenta bancaria '{$pago['CheckAccount']}' en SAP.");
         }
-        // ==========================================================
-        // FIN DE LA CORRECCIÓN
-        // ==========================================================
+    
     }
 
     // 3. ENVIAR A SAP
